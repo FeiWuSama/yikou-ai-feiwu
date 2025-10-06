@@ -8,7 +8,7 @@ spring:
     password: 815256031Hc!
 
 server:
-  port: 8122
+  port: 8123
   servlet:
     context-path: /api
 
