@@ -1,6 +1,11 @@
 spring:
   application:
     name: yikou-ai-feiwu
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://192.168.10.101:3306/yikou_ai?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai
+    username: root
+    password: 815256031Hc!
 
 server:
   port: 8122
