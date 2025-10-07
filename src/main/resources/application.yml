@@ -6,6 +6,8 @@ spring:
     url: jdbc:mysql://192.168.10.101:3306/yikou_ai?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai
     username: root
     password: 815256031Hc!
+  profiles:
+    active: local
 
 server:
   port: 8123
