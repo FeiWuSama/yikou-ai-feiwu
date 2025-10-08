@@ -1,6 +1,6 @@
 package com.feiwu.yikouai.model.vo.app;
 
-import com.feiwu.yikouai.model.vo.UserVO;
+import com.feiwu.yikouai.model.vo.user.UserVO;
 import lombok.Data;
 
 import java.io.Serializable;

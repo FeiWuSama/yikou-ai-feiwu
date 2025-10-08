@@ -6,7 +6,7 @@ import com.feiwu.yikouai.exception.BusinessException;
 import com.feiwu.yikouai.exception.ErrorCode;
 import com.feiwu.yikouai.model.dto.app.AppQueryDto;
 import com.feiwu.yikouai.model.entity.User;
-import com.feiwu.yikouai.model.vo.UserVO;
+import com.feiwu.yikouai.model.vo.user.UserVO;
 import com.feiwu.yikouai.model.vo.app.AppVO;
 import com.feiwu.yikouai.service.UserService;
 import com.mybatisflex.core.query.QueryWrapper;

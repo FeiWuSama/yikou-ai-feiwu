@@ -1,4 +1,4 @@
-package com.feiwu.yikouai.model.vo;
+package com.feiwu.yikouai.model.vo.user;
 
 import lombok.Data;
 

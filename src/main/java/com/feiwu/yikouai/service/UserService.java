@@ -1,8 +1,8 @@
 package com.feiwu.yikouai.service;
 
-import com.feiwu.yikouai.model.dto.UserQueryDto;
-import com.feiwu.yikouai.model.vo.LoginUserVO;
-import com.feiwu.yikouai.model.vo.UserVO;
+import com.feiwu.yikouai.model.dto.user.UserQueryDto;
+import com.feiwu.yikouai.model.vo.user.LoginUserVO;
+import com.feiwu.yikouai.model.vo.user.UserVO;
 import com.mybatisflex.core.query.QueryWrapper;
 import com.mybatisflex.core.service.IService;
 import com.feiwu.yikouai.model.entity.User;

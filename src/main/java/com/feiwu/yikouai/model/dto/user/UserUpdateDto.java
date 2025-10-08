@@ -1,11 +1,16 @@
-package com.feiwu.yikouai.model.dto;
+package com.feiwu.yikouai.model.dto.user;
 
 import lombok.Data;
 
 import java.io.Serializable;
 
 @Data
-public class UserAddDto implements Serializable {
+public class UserUpdateDto implements Serializable {
+
+    /**
+     * id
+     */
+    private Long id;
 
     /**
      * 用户昵称
@@ -13,22 +18,17 @@ public class UserAddDto implements Serializable {
     private String userName;
 
     /**
-     * 账号
-     */
-    private String userAccount;
-
-    /**
      * 用户头像
      */
     private String userAvatar;
 
     /**
-     * 用户简介
+     * 简介
      */
     private String userProfile;
 
     /**
-     * 用户角色: user, admin
+     * 用户角色：user/admin
      */
     private String userRole;
 

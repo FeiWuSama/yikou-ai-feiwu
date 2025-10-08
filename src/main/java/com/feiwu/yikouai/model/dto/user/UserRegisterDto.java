@@ -1,11 +1,11 @@
-package com.feiwu.yikouai.model.dto;
+package com.feiwu.yikouai.model.dto.user;
 
 import lombok.Data;
 
 import java.io.Serializable;
 
 @Data
-public class UserLoginDto implements Serializable {
+public class UserRegisterDto implements Serializable {
 
     private static final long serialVersionUID = 3191241716373120793L;
 
@@ -18,4 +18,9 @@ public class UserLoginDto implements Serializable {
      * 密码
      */
     private String userPassword;
+
+    /**
+     * 确认密码
+     */
+    private String checkPassword;
 }
