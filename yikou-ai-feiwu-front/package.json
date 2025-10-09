@@ -17,10 +17,14 @@
     "format": "prettier --write src/"
   },
   "dependencies": {
+    "@vueup/vue-quill": "^1.2.0",
     "ant-design-vue": "^4.2.6",
     "axios": "^1.12.2",
     "event-source-polyfill": "^1.0.31",
+    "highlight.js": "^11.11.1",
+    "marked": "^16.4.0",
     "pinia": "^3.0.3",
+    "quill": "^2.0.3",
     "vue": "^3.5.22",
     "vue-router": "^4.5.1"
   },

@@ -189,7 +189,7 @@ const handleCardAction = (actionKey: string, appData: API.AppVO) => {
     case 'chat':
     case 'preview': // 新增预览操作
     case 'continue': // 新增继续创作操作
-      goToChat(appData.id!)
+      goToChat(appData.id!.toString())
       break
     case 'edit':
       doEdit(appData)
@@ -352,7 +352,7 @@ const doDelete = async (id: number) => {
 }
 
 // 跳转到对话页面
-const goToChat = (appId: number) => {
+const goToChat = (appId: string) => {
   router.push(`/app/chat/${appId}`)
 }
 

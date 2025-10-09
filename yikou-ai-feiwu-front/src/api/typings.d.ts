@@ -11,7 +11,7 @@ declare namespace API {
   }
 
   type AppDeployDto = {
-    appId?: number
+    appId?: string
   }
 
   type AppQueryDto = {
@@ -104,7 +104,7 @@ declare namespace API {
   }
 
   type chatToGenCodeParams = {
-    appId: number
+    appId: string
     message: string
   }
 
@@ -117,7 +117,7 @@ declare namespace API {
   }
 
   type getAppVOByIdParams = {
-    id: number
+    id: string
   }
 
   type getUserByIdParams = {
