@@ -13,6 +13,9 @@
         <a-menu-item key="用户管理" v-if="loginUserStore.loginUser?.userRole === 'admin'">
           <router-link to="/admin/userManage">用户管理</router-link>
         </a-menu-item>
+        <a-menu-item key="应用管理" v-if="loginUserStore.loginUser?.userRole === 'admin'">
+          <router-link to="/admin/appManage">应用管理</router-link>
+        </a-menu-item>
       </a-menu>
     </div>
     <div class="header-right">
