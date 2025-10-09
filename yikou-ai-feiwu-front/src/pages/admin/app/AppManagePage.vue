@@ -16,16 +16,27 @@
         <template v-if="column.dataIndex === 'cover'">
           <a-image :src="record.cover || defaultCover" :width="120" />
         </template>
+        <template v-else-if="column.dataIndex === 'initPrompt'">
+          <span :title="record.initPrompt">
+            {{ record.initPrompt }}
+          </span>
+        </template>
         <template v-else-if="column.dataIndex === 'priority'">
           <a-tag :color="record.priority && record.priority >= 99 ? 'green' : 'default'">
-            {{ record.priority || 0 }}
+            {{ record.priority === 99 ? '精选' : '普通'  }}
           </a-tag>
         </template>
         <template v-else-if="column.dataIndex === 'createTime'">
           {{ dayjs(record.createTime).format('YYYY-MM-DD HH:mm:ss') }}
         </template>
+        <template v-else-if="column.dataIndex === 'user'">
+          <div class="user-info">
+            <a-avatar :src="record.user?.userAvatar" size="small" />
+            <span class="user-name">{{ record.user?.userName || '未知用户' }}</span>
+          </div>
+        </template>
         <template v-else-if="column.key === 'action'">
-          <a-button type="primary" @click="doEdit(record)" style="margin-right: 8px;">编辑</a-button>
+          <a-button type="primary" @click="doEdit(record)" style="margin-right: 8px;margin-bottom: 8px">编辑</a-button>
           <a-button @click="doSetGood(record)" style="margin-right: 8px;">
             {{ record.priority && record.priority >= 99 ? '取消精选' : '设为精选' }}
           </a-button>
@@ -61,9 +72,9 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue'
 import { message, Modal } from 'ant-design-vue'
-import { 
-  deleteAppByAdmin, 
-  listAppVoByPageByAdmin, 
+import {
+  deleteAppByAdmin,
+  listAppVoByPageByAdmin,
   updateAppByAdmin,
   getAppVoByIdByAdmin
 } from '@/api/appController.ts'
@@ -89,6 +100,10 @@ const columns = [
   {
     title: '提示词',
     dataIndex: 'initPrompt',
+  },
+  {
+    title: '创建用户',
+    dataIndex: 'user',
   },
   {
     title: '优先级',
@@ -225,30 +240,30 @@ const doSetGood = async (record: API.AppVO) => {
   if (!record.id) {
     return
   }
-  
+
   // 获取应用详细信息
   const res = await getAppVoByIdByAdmin({ id: record.id })
   if (res.data.code !== 0) {
     message.error('获取应用信息失败，' + res.data.message)
     return
   }
-  
+
   const appInfo = res.data.data
   if (!appInfo) {
     message.error('应用信息不存在')
     return
   }
-  
+
   // 设置优先级为99或0
   const newPriority = appInfo.priority && appInfo.priority >= 99 ? 0 : 99
-  
+
   const updateRes = await updateAppByAdmin({
     id: appInfo.id,
     appName: appInfo.appName,
     cover: appInfo.cover,
     priority: newPriority
   })
-  
+
   if (updateRes.data.code === 0) {
     message.success(newPriority >= 99 ? '设置精选成功' : '取消精选成功')
     fetchData()
@@ -267,6 +282,16 @@ onMounted(() => {
 #appManagePage {
   max-width: 1200px;
   margin: 0 auto;
-  padding: 20px;
+}
+
+.user-info {
+  width: 80px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.user-name {
+  font-size: 14px;
 }
 </style>
