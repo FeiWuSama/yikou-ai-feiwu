@@ -7,13 +7,13 @@
         <a-button type="primary" @click="doDeploy" :loading="deployLoading">部署</a-button>
       </div>
     </a-layout-header>
-    
+
     <a-layout class="main-layout">
       <!-- 左侧对话区域 -->
       <a-layout-content class="chat-container">
         <!-- 消息区域 -->
-        <div 
-          class="messages-container" 
+        <div
+          class="messages-container"
           ref="messagesContainerRef"
           :style="{ height: messagesContainerHeight + 'px' }"
         >
@@ -29,24 +29,18 @@
             </div>
           </div>
         </div>
-        
-        <!-- 可拖拽分隔条 -->
-        <div 
-          class="resize-handle" 
-          @mousedown="startResize"
-        ></div>
-        
+
         <!-- 输入框 -->
         <div class="input-container">
-          <a-input 
-            v-model:value="inputMessage" 
-            placeholder="请输入消息..." 
+          <a-input
+            v-model:value="inputMessage"
+            placeholder="请输入消息..."
             @pressEnter="sendMessage"
             :disabled="sending"
           />
-          <a-button 
-            type="primary" 
-            @click="sendMessage" 
+          <a-button
+            type="primary"
+            @click="sendMessage"
             :loading="sending"
             :disabled="!inputMessage.trim()"
           >
@@ -54,7 +48,7 @@
           </a-button>
         </div>
       </a-layout-content>
-      
+
       <!-- 右侧网页展示区域 -->
       <a-layout-sider width="50%" class="preview-container" v-if="deployUrl">
         <iframe :src="deployUrl" class="preview-frame" frameborder="0"></iframe>
@@ -97,9 +91,9 @@ const fetchAppInfo = async () => {
     message.error('应用ID不存在')
     return
   }
-  
+
   appId.value = parseInt(id)
-  
+
   const res = await getAppVoById({ id: appId.value })
   if (res.data.code === 0 && res.data.data) {
     appInfo.value = res.data.data
@@ -121,7 +115,7 @@ const sendInitialMessage = async (prompt: string) => {
     content: prompt
   }
   messages.value.push(userMsg)
-  
+
   // 添加AI消息占位符
   const aiMsg = {
     id: Date.now() + 1,
@@ -129,11 +123,11 @@ const sendInitialMessage = async (prompt: string) => {
     content: ''
   }
   messages.value.push(aiMsg)
-  
+
   // 滚动到底部
   await nextTick()
   scrollToBottom()
-  
+
   // 发送请求
   await sendSSEMessage(prompt, aiMsg)
 }
@@ -143,10 +137,10 @@ const sendMessage = async () => {
   if (!inputMessage.value.trim() || sending.value) {
     return
   }
-  
+
   const userMsgContent = inputMessage.value
   inputMessage.value = ''
-  
+
   // 添加用户消息
   const userMsg = {
     id: Date.now(),
@@ -154,7 +148,7 @@ const sendMessage = async () => {
     content: userMsgContent
   }
   messages.value.push(userMsg)
-  
+
   // 添加AI消息占位符
   const aiMsg = {
     id: Date.now() + 1,
@@ -162,11 +156,11 @@ const sendMessage = async () => {
     content: ''
   }
   messages.value.push(aiMsg)
-  
+
   // 滚动到底部
   await nextTick()
   scrollToBottom()
-  
+
   // 发送请求
   await sendSSEMessage(userMsgContent, aiMsg)
 }
@@ -177,9 +171,9 @@ const sendSSEMessage = async (content: string, aiMsg: any) => {
     message.error('应用ID不存在')
     return
   }
-  
+
   sending.value = true
-  
+
   try {
     // 使用EventSource接收流式响应
     const eventSource = new EventSourcePolyfill(
@@ -188,7 +182,7 @@ const sendSSEMessage = async (content: string, aiMsg: any) => {
         withCredentials: true
       }
     )
-    
+
     eventSource.onmessage = (event) => {
       if (event.data === '[DONE]') {
         // 流结束
@@ -198,17 +192,17 @@ const sendSSEMessage = async (content: string, aiMsg: any) => {
         showPreview()
         return
       }
-      
+
       // 解码数据
       const decodedData = decodeURIComponent(escape(atob(event.data)))
-      
+
       // 更新AI消息内容
       aiMsg.content += decodedData
-      
+
       // 滚动到底部
       scrollToBottom()
     }
-    
+
     eventSource.onerror = (error) => {
       console.error('SSE error:', error)
       eventSource.close()
@@ -241,7 +235,7 @@ const doDeploy = async () => {
     message.error('应用ID不存在')
     return
   }
-  
+
   deployLoading.value = true
   try {
     const res = await deployApp({ appId: appId.value })

@@ -404,20 +404,25 @@ onMounted(() => {
   display: flex;
   justify-content: center;
   position: relative;
+  width: 800px;
+  margin: 0 auto;
 }
 
 .prompt-textarea {
   padding: 15px 40px 15px 15px !important;
-  width: 800px;
+  width: 100%;
+  resize: vertical;
+  min-height: 80px;
 }
 
 .send-button {
   position: absolute;
   bottom: 10px;
-  right: 12vw;
+  right: 10px;
   width: 32px;
   height: 32px;
   min-width: 32px;
+  z-index: 10;
 }
 
 .quick-prompts {
