@@ -392,12 +392,47 @@ onMounted(() => {
 .title {
   text-align: center;
   margin-bottom: 16px;
+  font-size: 2.5rem;
+  font-weight: 700;
+  background: linear-gradient(135deg, #0037ff 0%, #009dfe 50%, #00ff87 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  text-shadow: 0 0 20px rgba(0, 180, 255, 0.5);
+  position: relative;
+  animation: techGlow 3s ease-in-out infinite alternate;
+}
+
+@keyframes techGlow {
+  0% {
+    text-shadow: 0 0 20px rgba(0, 180, 255, 0.5), 0 0 40px rgba(0, 81, 255, 0.505);
+  }
+  100% {
+    text-shadow: 0 0 30px rgba(0, 180, 255, 0.8), 0 0 60px rgba(0, 119, 255, 0.838);
+  }
 }
 
 .desc {
   text-align: center;
-  color: #bbb;
+  color: #9f9f9f;
   margin-bottom: 32px;
+  font-size: 1.2rem;
+  font-weight: 300;
+  background: linear-gradient(135deg, #817df1 0%, #ffc8d9 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  text-shadow: 0 0 15px rgba(168, 237, 234, 0.4);
+  animation: descGlow 4s ease-in-out infinite alternate;
+}
+
+@keyframes descGlow {
+  0% {
+    text-shadow: 0 0 15px rgba(168, 237, 234, 0.4);
+  }
+  100% {
+    text-shadow: 0 0 25px rgba(168, 237, 234, 0.7), 0 0 35px rgba(168, 237, 234, 0.5);
+  }
 }
 
 .prompt-input-container {
@@ -437,6 +472,9 @@ onMounted(() => {
 }
 
 .quick-prompt-tag {
+  border-radius: 20px;
+  padding: 10px;
+  background: rgba(255, 255, 255, 0.5);
   cursor: pointer;
   transition: all 0.3s;
 }

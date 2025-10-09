@@ -25,6 +25,12 @@ import GlobalFooter from '@/components/GlobalFooter.vue'
 <style scoped>
 .layout-container {
   min-height: 100vh;
+  background: linear-gradient(to bottom, #ffffff, #87ceeb);
+  background-image: 
+    linear-gradient(to bottom, #ffffff, #87ceeb),
+    radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.3) 1px, transparent 1px);
+  background-size: 100% 100%, 20px 20px;
+  background-blend-mode: overlay;
 }
 
 .header {
