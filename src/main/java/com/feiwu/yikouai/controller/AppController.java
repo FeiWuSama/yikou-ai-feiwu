@@ -114,7 +114,7 @@ public class AppController {
      * @return 应用 id
      */
     @PostMapping("/add")
-    public BaseResponse<Long> addApp(@RequestBody AppAddDto appAddDto, HttpServletRequest request) {
+    public BaseResponse<String> addApp(@RequestBody AppAddDto appAddDto, HttpServletRequest request) {
         ThrowUtils.throwIf(appAddDto == null, ErrorCode.PARAMS_ERROR);
         // 参数校验
         String initPrompt = appAddDto.getInitPrompt();
@@ -132,7 +132,7 @@ public class AppController {
         // 插入数据库
         boolean result = appService.save(app);
         ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);
-        return ResultUtils.success(app.getId());
+        return ResultUtils.success(app.getId().toString());
     }
 
     /**
