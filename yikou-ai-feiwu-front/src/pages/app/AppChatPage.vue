@@ -36,12 +36,9 @@
                 />
               </div>
               <div class="content">
-                <div
-                  v-if="msg.role === 'ai'"
-                  class="ai-content"
-                  v-html="marked.parse(msg.content)"
-                ></div>
-                <div v-else class="user-content">{{ msg.content }}</div>
+                <MarkdownRenderer v-if="msg.role === 'ai' && msg.content" :content="msg.content" />
+                <div v-else-if="msg.role === 'user'" class="user-content">{{ msg.content }}</div>
+                <div v-else class="ai-content">AI在生成代码中...</div>
               </div>
             </div>
           </div>
@@ -91,37 +88,11 @@ import { marked } from 'marked'
 import hljs from 'highlight.js'
 import 'highlight.js/styles/github.css'
 import { useLoginUserStore } from '@/stores/loginUser.ts'
+import MarkdownRenderer from '@/components/MarkdownRenderer.vue'
 
 const loginUserStore = useLoginUserStore()
 
 const route = useRoute()
-
-// 配置markdown解析器
-marked.setOptions({
-  highlight: function (code, lang) {
-    try {
-      // 自动检测语言类型
-      let language = 'plaintext'
-
-      // 根据文件扩展名或内容自动识别语言
-      if (lang) {
-        language = hljs.getLanguage(lang) ? lang : 'plaintext'
-      } else {
-        // 自动检测代码语言
-        const detected = hljs.highlightAuto(code)
-        language = detected.language || 'plaintext'
-      }
-
-      return hljs.highlight(code, { language }).value
-    } catch (error) {
-      console.warn('代码高亮失败:', error)
-      return code
-    }
-  },
-  breaks: true,
-  gfm: true,
-  langPrefix: 'hljs language-',
-})
 
 // 应用信息
 const appInfo = ref<API.AppVO>({})
@@ -135,7 +106,6 @@ const messagesContainerRef = ref<HTMLDivElement | null>(null)
 
 // 消息容器高度相关
 const messagesContainerHeight = ref(500)
-let isResizing = false
 
 // 部署相关
 const deployLoading = ref(false)
@@ -246,163 +216,6 @@ const sendMessage = async () => {
   await sendSSEMessage(userMsgContent, aiMsg)
 }
 
-// 智能检测代码块并格式化为markdown
-const formatCodeBlocks = (content: string): string => {
-  // 如果内容已经包含代码块标记，直接返回
-  if (content.includes('```')) {
-    return content
-  }
-
-  // 检测完整的HTML文档结构（包含DOCTYPE和html标签）
-  const htmlDocPattern = /<!DOCTYPE html>[\s\S]*?<\/html>/i
-  const htmlMatch = content.match(htmlDocPattern)
-
-  if (htmlMatch) {
-    // 提取HTML代码部分
-    const htmlCode = htmlMatch[0]
-    // 提取说明文字部分（HTML代码之前和之后的内容）
-    const beforeCode = content.substring(0, content.indexOf(htmlCode)).trim()
-    const afterCode = content.substring(content.indexOf(htmlCode) + htmlCode.length).trim()
-
-    // 重新组织内容：说明文字在前，代码块在后
-    let description = ''
-    if (beforeCode) {
-      description += beforeCode
-    }
-    if (afterCode) {
-      if (description) description += '\n\n' + afterCode
-      else description = afterCode
-    }
-
-    if (description) {
-      return `${description}\n\n\`\`\`html\n${htmlCode}\n\`\`\``
-    } else {
-      return `\`\`\`html\n${htmlCode}\n\`\`\``
-    }
-  }
-
-  // 检测混合代码内容（HTML + CSS + JavaScript + 说明文字）
-  const hasHTML = /<\/?[a-z][\s\S]*?>/i.test(content)
-  const hasCSS = /\{[\s\S]*?\}/.test(content) || /\.\w+\s*\{/.test(content)
-  const hasJS = /(function|const|let|var|document\.getElementById)/.test(content)
-
-  // 如果包含多种代码类型，认为是完整的网页代码
-  if ((hasHTML && hasCSS) || (hasHTML && hasJS) || (hasHTML && hasCSS && hasJS)) {
-    // 提取说明文字部分（非代码内容）
-    const lines = content.split('\n')
-    const codeLines: string[] = []
-    const textLines: string[] = []
-
-    // 分离代码行和文本行（更智能的检测）
-    let inCodeSection = false
-    lines.forEach((line) => {
-      const trimmedLine = line.trim()
-
-      // 检测是否进入代码区域
-      if (
-        trimmedLine.includes('<!DOCTYPE') ||
-        trimmedLine.includes('<html') ||
-        trimmedLine.includes('<head>') ||
-        trimmedLine.includes('<body>') ||
-        trimmedLine.includes('<style>') ||
-        trimmedLine.includes('<script>')
-      ) {
-        inCodeSection = true
-      }
-
-      // 检测是否退出代码区域
-      if (trimmedLine.includes('</html>') || trimmedLine.includes('</body>')) {
-        inCodeSection = false
-      }
-
-      if (
-        inCodeSection ||
-        (trimmedLine &&
-          !trimmedLine.startsWith('//') &&
-          !trimmedLine.startsWith('*') &&
-          !trimmedLine.startsWith('这个') &&
-          !trimmedLine.startsWith('页面') &&
-          !trimmedLine.startsWith('响应式') &&
-          !trimmedLine.startsWith('简洁') &&
-          !trimmedLine.startsWith('包含') &&
-          !trimmedLine.startsWith('特点：') &&
-          !trimmedLine.startsWith('使用了') &&
-          !trimmedLine.startsWith('同时') &&
-          !trimmedLine.startsWith('JavaScript') &&
-          !trimmedLine.startsWith('这是') &&
-          !trimmedLine.startsWith('我将') &&
-          !trimmedLine.startsWith('总代码') &&
-          !trimmedLine.startsWith('页面包含') &&
-          !trimmedLine.startsWith('点击登录') &&
-          !trimmedLine.startsWith('基本的') &&
-          !trimmedLine.startsWith('简洁美观') &&
-          !trimmedLine.startsWith('响应式设计') &&
-          !trimmedLine.startsWith('登录页面包含以下特点：') &&
-          !trimmedLine.endsWith('。') &&
-          !trimmedLine.endsWith('：') &&
-          trimmedLine.length > 3)
-      ) {
-        codeLines.push(line)
-      } else if (trimmedLine) {
-        textLines.push(line)
-      }
-    })
-
-    // 重新组织内容：文本在前，代码块在后
-    const textContent = textLines.join('\n').trim()
-    const codeContent = codeLines.join('\n').trim()
-
-    if (textContent && codeContent) {
-      return `${textContent}\n\n\`\`\`html\n${codeContent}\n\`\`\``
-    } else if (codeContent) {
-      return `\`\`\`html\n${codeContent}\n\`\`\``
-    }
-  }
-
-  // 检测其他代码模式
-  const codePatterns = [
-    // HTML标签检测
-    /<\/?[a-z][\s\S]*?>/i,
-    // CSS样式块检测
-    /<style>[\s\S]*?<\/style>/i,
-    // JavaScript脚本块检测
-    /<script>[\s\S]*?<\/script>/i,
-    // 函数定义检测
-    /(function|const|let|var)\s+\w+\s*=/,
-    // 代码块结构检测
-    /^\s*<[\s\S]*?>\s*$/m,
-  ]
-
-  // 计算代码内容的比例
-  const codeLines = content.split('\n').filter((line) => {
-    return codePatterns.some((pattern) => pattern.test(line))
-  })
-
-  const codeRatio = codeLines.length / content.split('\n').length
-
-  // 如果代码比例超过30%，认为是代码内容
-  if (codeRatio > 0.3) {
-    // 自动检测语言类型
-    let language = 'plaintext'
-    if (content.includes('<!DOCTYPE') || content.includes('<html')) {
-      language = 'html'
-    } else if (content.includes('<style>') || (content.includes('{') && content.includes('}'))) {
-      language = 'css'
-    } else if (
-      content.includes('<script>') ||
-      content.includes('function') ||
-      content.includes('const') ||
-      content.includes('let')
-    ) {
-      language = 'javascript'
-    }
-
-    return `\`\`\`${language}\n${content}\n\`\`\``
-  }
-
-  return content
-}
-
 // 发送SSE消息
 const sendSSEMessage = async (content: string, aiMsg: any) => {
   if (!appId.value) {
@@ -440,24 +253,10 @@ const sendSSEMessage = async (content: string, aiMsg: any) => {
       // 更新AI消息内容
       aiMsg.content += processedData
 
-      // 智能格式化代码块（只在内容变化时检测）
-      let formattedContent = aiMsg.content
-      if (!aiMsg._hasCodeBlock) {
-        formattedContent = formatCodeBlocks(aiMsg.content)
-        // 如果检测到代码块，标记为已处理
-        if (formattedContent.includes('```')) {
-          aiMsg._hasCodeBlock = true
-        }
-      }
-
-      // 实时更新显示（将markdown转换为HTML）
-      const aiContentElement = document.querySelector(`.message[data-id="${aiMsg.id}"] .ai-content`)
-      if (aiContentElement) {
-        aiContentElement.innerHTML = marked.parse(formattedContent)
-      }
-
-      // 滚动到底部
-      scrollToBottom()
+      // 强制更新DOM并滚动到底部
+      nextTick().then(() => {
+        scrollToBottom()
+      })
     }
 
     // 监听特定事件类型
@@ -532,9 +331,12 @@ onMounted(async () => {
 
 <style scoped>
 #appChatPage {
-  height: 100vh;
+  height: 85vh;
   display: flex;
   flex-direction: column;
+  margin: 20px auto;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 .header {
@@ -563,7 +365,7 @@ onMounted(async () => {
 .chat-container {
   display: flex;
   flex-direction: column;
-  height: calc(100vh - 64px);
+  height: calc(90vh - 66px - 40px);
 }
 
 .messages-container {
@@ -571,6 +373,7 @@ onMounted(async () => {
   overflow-y: auto;
   padding: 20px;
   background: #f5f5f5;
+  border-radius: 8px;
 }
 
 .message {
@@ -579,12 +382,13 @@ onMounted(async () => {
 
 .message-content {
   display: flex;
-  max-width: 80%;
+  max-width: 100%;
 }
 
 .message.user .message-content {
   margin-left: auto;
   flex-direction: row-reverse;
+  justify-content: flex-end;
 }
 
 .avatar {
@@ -597,22 +401,24 @@ onMounted(async () => {
 }
 
 .content {
-  width: 500px;
-  white-space: wrap;
   background: #fff;
   padding: 10px 15px;
   border-radius: 8px;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+  max-width: 80%;
+  word-wrap: break-word;
 }
 
 .message.user .content {
   background: #1890ff;
   color: #fff;
+  margin-left: auto;
 }
 
 /* AI消息中的代码块样式 */
 .ai-content {
   line-height: 1.6;
+  width: 100%;
 }
 
 .ai-content pre {
@@ -690,12 +496,12 @@ onMounted(async () => {
 }
 
 .preview-container {
-  border-left: 10px solid #87ceeb !important;
   background: #fff;
   border-left: 1px solid #e8e8e8;
   display: flex;
   align-items: center;
   justify-content: center;
+  border-radius: 0 8px 8px 0;
 }
 
 :deep(.ant-layout-sider-children){
