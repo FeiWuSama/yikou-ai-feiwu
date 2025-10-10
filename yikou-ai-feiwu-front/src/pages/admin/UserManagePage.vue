@@ -234,6 +234,7 @@ onMounted(() => {
 
 <style scoped>
 #userManagePage {
+  margin: 0 auto;
   width: 1200px;
 }
 </style>
