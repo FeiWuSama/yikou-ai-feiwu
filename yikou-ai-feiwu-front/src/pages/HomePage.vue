@@ -186,6 +186,8 @@ const goodTotal = ref(0)
 const goodSearchParams = reactive<API.AppQueryDto>({
   pageNum: 1,
   pageSize: 20,
+  sortField: 'createTime',
+  sortOrder: 'desc',
 })
 
 // 编辑模态框相关
@@ -222,7 +224,7 @@ const fetchMyAppData = async () => {
     myTotal.value = 0
     return
   }
-  
+
   const res = await listMyAppVoByPage({
     ...mySearchParams,
   })
@@ -304,7 +306,7 @@ const handleCreateApp = async (values: any) => {
     router.push('/user/login')
     return
   }
-  
+
   createLoading.value = true
   try {
     const res = await addApp(values)
@@ -392,7 +394,7 @@ const useQuickPrompt = (prompt: string) => {
     router.push('/user/login')
     return
   }
-  
+
   // 根据类型词生成完整提示词
   const promptMap: Record<string, string> = {
     '个人博客网站': '做一个个人博客网站，包含文章列表和详情页面',
