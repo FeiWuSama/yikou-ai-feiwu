@@ -50,17 +50,19 @@
 
         <!-- 输入框 -->
         <div class="input-container">
-          <a-input
-            v-model:value="inputMessage"
-            placeholder="请输入消息..."
-            @pressEnter="sendMessage"
-            :disabled="sending"
-          />
+          <a-tooltip :title="isInputDisabled ? '无法在别人的作品下对话哦~' : ''" placement="top">
+            <a-input
+              v-model:value="inputMessage"
+              placeholder="请输入消息..."
+              @pressEnter="sendMessage"
+              :disabled="sending || isInputDisabled"
+            />
+          </a-tooltip>
           <a-button
             type="primary"
             @click="sendMessage"
             :loading="sending"
-            :disabled="!inputMessage.trim()"
+            :disabled="!inputMessage.trim() || isInputDisabled"
           >
             发送
           </a-button>
@@ -76,7 +78,7 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref, nextTick } from 'vue'
+import { onMounted, ref, nextTick, computed } from 'vue'
 import { message } from 'ant-design-vue'
 import { useRoute } from 'vue-router'
 import { getAppVoById, chatToGenCode, deployApp } from '@/api/appController.ts'
@@ -135,6 +137,26 @@ let isResizing = false
 const deployLoading = ref(false)
 const deployUrl = ref('')
 
+// 权限相关
+// 判断是否为自己的应用
+const isMyApp = computed(() => {
+  return appInfo.value.userId === loginUserStore.loginUser.id
+})
+
+// 输入框禁用状态
+const isInputDisabled = computed(() => {
+  // 如果应用信息还未加载，不禁用
+  if (!appInfo.value.id) {
+    return false
+  }
+  // 如果是自己的应用，不禁用
+  if (isMyApp.value) {
+    return false
+  }
+  // 如果不是自己的应用，禁用输入框
+  return true
+})
+
 // 获取应用信息
 const fetchAppInfo = async () => {
   const id = route.params.id as string
@@ -148,8 +170,9 @@ const fetchAppInfo = async () => {
   const res = await getAppVoById({ id: id })
   if (res.data.code === 0 && res.data.data) {
     appInfo.value = res.data.data
-    // 自动发送初始提示词
-    if (appInfo.value.initPrompt) {
+    // 检查是否有view参数，如果没有则自动发送初始提示词
+    const viewParam = route.query.view
+    if (!viewParam && appInfo.value.initPrompt) {
       await sendInitialMessage(appInfo.value.initPrompt)
     }
   } else {

@@ -53,7 +53,6 @@
             v-for="item in goodAppData"
             :key="item.id"
             :app-data="item"
-            :actions="[{ key: 'experience', label: '体验' }]"
             :show-user-info="true"
             :is-good-app="true"
             @action="handleCardAction"
@@ -82,11 +81,6 @@
             v-for="item in myAppData"
             :key="item.id"
             :app-data="item"
-            :actions="[
-              { key: 'chat', label: '对话' },
-              { key: 'edit', label: '编辑' },
-              { key: 'delete', label: '删除' }
-            ]"
             :is-good-app="false"
             @action="handleCardAction"
           />
@@ -382,8 +376,8 @@ const doDelete = async (id: number) => {
 }
 
 // 跳转到对话页面
-const goToChat = (appId: string) => {
-  router.push(`/app/chat/${appId}`)
+const goToChat = (id: string) => {
+  router.push(`/app/chat/${id}?view=1`)
 }
 
 // 使用快捷提示词 - 补充完整提示词
