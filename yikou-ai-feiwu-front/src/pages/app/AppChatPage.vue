@@ -246,47 +246,11 @@ const sendMessage = async () => {
   await sendSSEMessage(userMsgContent, aiMsg)
 }
 
-// HTML代码解析器（仿照后端实现）
-const parseHtmlCode = (content: string): { htmlCode: string; description: string } => {
-  // 正则表达式匹配HTML代码块（仿照后端的HTML_CODE_PATTERN）
-  const HTML_CODE_PATTERN = /```html\s*\n([\s\S]*?)```/i
-
-  const result = { htmlCode: '', description: '' }
-
-  // 提取HTML代码
-  const matcher = content.match(HTML_CODE_PATTERN)
-  if (matcher && matcher[1]) {
-    result.htmlCode = matcher[1].trim()
-    // 提取描述部分（代码块之前的内容）
-    const beforeCode = content.substring(0, content.indexOf('```html')).trim()
-    if (beforeCode) {
-      result.description = beforeCode
-    }
-  } else {
-    // 如果没有找到代码块，将整个内容作为HTML（仿照后端逻辑）
-    result.htmlCode = content.trim()
-  }
-
-  return result
-}
-
 // 智能检测代码块并格式化为markdown
 const formatCodeBlocks = (content: string): string => {
   // 如果内容已经包含代码块标记，直接返回
   if (content.includes('```')) {
     return content
-  }
-
-  // 首先尝试使用HTML代码解析器（仿照后端逻辑）
-  const parsedResult = parseHtmlCode(content)
-
-  // 如果解析出了HTML代码，优先使用解析结果
-  if (parsedResult.htmlCode && parsedResult.htmlCode !== content) {
-    if (parsedResult.description) {
-      return `${parsedResult.description}\n\n\`\`\`html\n${parsedResult.htmlCode}\n\`\`\``
-    } else {
-      return `\`\`\`html\n${parsedResult.htmlCode}\n\`\`\``
-    }
   }
 
   // 检测完整的HTML文档结构（包含DOCTYPE和html标签）
@@ -726,6 +690,7 @@ onMounted(async () => {
 }
 
 .preview-container {
+  border-left: 10px solid #87ceeb !important;
   background: #fff;
   border-left: 1px solid #e8e8e8;
   display: flex;
@@ -734,6 +699,9 @@ onMounted(async () => {
 }
 
 :deep(.ant-layout-sider-children){
+  display: flex;
+  justify-content: center;
+  align-items: center;
   width: 60vw;
 }
 
