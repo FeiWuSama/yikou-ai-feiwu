@@ -7,7 +7,6 @@
         <a-button type="primary" @click="doDeploy" :loading="deployLoading">部署</a-button>
       </div>
     </a-layout-header>
-
     <a-layout class="main-layout">
       <!-- 左侧对话区域 -->
       <a-layout-content class="chat-container">
@@ -25,14 +24,14 @@
           >
             <div class="message-content">
               <div class="avatar">
-                <a-avatar 
-                  v-if="msg.role === 'user'" 
-                  :src="loginUserStore.loginUser.userAvatar" 
+                <a-avatar
+                  v-if="msg.role === 'user'"
+                  :src="loginUserStore.loginUser.userAvatar"
                   :alt="loginUserStore.loginUser.userName"
                 />
-                <a-avatar 
-                  v-else 
-                  src="/src/assets/logo.png" 
+                <a-avatar
+                  v-else
+                  src="/src/assets/logo.png"
                   alt="AI助手"
                 />
               </div>
@@ -47,7 +46,6 @@
             </div>
           </div>
         </div>
-
         <!-- 输入框 -->
         <div class="input-container">
           <a-tooltip :title="isInputDisabled ? '无法在别人的作品下对话哦~' : ''" placement="top">
@@ -68,10 +66,16 @@
           </a-button>
         </div>
       </a-layout-content>
-
       <!-- 右侧网页展示区域 -->
-      <a-layout-sider width="50%" class="preview-container" v-if="deployUrl">
-        <iframe :src="deployUrl" class="preview-frame" frameborder="0"></iframe>
+      <a-layout-sider width="60%" class="preview-container">
+        <div v-if="streamLoading" class="loading-container">
+          <a-spin size="large" />
+          <p>AI正在生成中...</p>
+        </div>
+        <iframe v-else-if="deployUrl" :src="deployUrl" class="preview-frame" frameborder="0"></iframe>
+        <div v-else class="empty-preview">
+          <p>暂无预览内容</p>
+        </div>
       </a-layout-sider>
     </a-layout>
   </div>
@@ -136,6 +140,9 @@ let isResizing = false
 // 部署相关
 const deployLoading = ref(false)
 const deployUrl = ref('')
+
+// 流式响应相关
+const streamLoading = ref(false)
 
 // 权限相关
 // 判断是否为自己的应用
@@ -440,6 +447,7 @@ const sendSSEMessage = async (content: string, aiMsg: any) => {
   }
 
   sending.value = true
+  streamLoading.value = true
 
   try {
     // 使用EventSource接收流式响应
@@ -493,6 +501,7 @@ const sendSSEMessage = async (content: string, aiMsg: any) => {
       // 流结束
       eventSource.close()
       sending.value = false
+      streamLoading.value = false
       // 显示部署预览
       showPreview()
     })
@@ -501,10 +510,12 @@ const sendSSEMessage = async (content: string, aiMsg: any) => {
       console.error('SSE error:', error)
       eventSource.close()
       sending.value = false
+      streamLoading.value = false
       message.error('消息发送失败')
     }
   } catch (error) {
     sending.value = false
+    streamLoading.value = false
     message.error('消息发送失败，请重试')
   }
 }
@@ -552,8 +563,6 @@ onMounted(async () => {
   await loginUserStore.fetchLoginUser()
   // 获取应用信息
   await fetchAppInfo()
-  // 测试代码格式化功能
-  // testFormatCodeBlocks()
 })
 </script>
 
@@ -624,6 +633,8 @@ onMounted(async () => {
 }
 
 .content {
+  width: 500px;
+  white-space: wrap;
   background: #fff;
   padding: 10px 15px;
   border-radius: 8px;
@@ -717,10 +728,27 @@ onMounted(async () => {
 .preview-container {
   background: #fff;
   border-left: 1px solid #e8e8e8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+:deep(.ant-layout-sider-children){
+  width: 60vw;
 }
 
 .preview-frame {
   width: 100%;
   height: 100%;
+}
+
+.loading-container {
+  text-align: center;
+  padding: 20px;
+}
+
+.empty-preview {
+  text-align: center;
+  color: #999;
 }
 </style>

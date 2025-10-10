@@ -26,7 +26,7 @@ import GlobalFooter from '@/components/GlobalFooter.vue'
 .layout-container {
   min-height: 100vh;
   background: linear-gradient(to bottom, #ffffff, #87ceeb);
-  background-image: 
+  background-image:
     linear-gradient(to bottom, #ffffff, #87ceeb),
     radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.3) 1px, transparent 1px);
   background-size: 100% 100%, 20px 20px;
@@ -44,9 +44,8 @@ import GlobalFooter from '@/components/GlobalFooter.vue'
 
 .content {
   flex: 1;
-  padding: 20px 0;
+  padding: 20px;
   margin: 0 auto;
-  max-width: 1200px;
   width: 100%;
 }
 
