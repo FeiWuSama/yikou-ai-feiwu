@@ -74,9 +74,9 @@
       </div>
 
       <!-- 我的应用 -->
-      <div class="section-title">我的应用</div>
+      <div v-if="isLoggedIn" class="section-title">我的应用</div>
       <!-- 应用列表 -->
-      <div class="app-list">
+      <div v-if="isLoggedIn" class="app-list">
         <div class="app-cards">
           <AppCard
             v-for="item in myAppData"
@@ -101,6 +101,14 @@
             :show-total="myPagination.showTotal"
             @change="handleMyPageChange"
           />
+        </div>
+      </div>
+
+      <!-- 未登录提示 -->
+      <div v-if="!isLoggedIn" class="login-prompt">
+        <div class="login-prompt-content">
+          <div class="login-prompt-text">登录后查看和管理您的应用</div>
+          <a-button type="primary" href="/user/login">立即登录</a-button>
         </div>
       </div>
     </div>
@@ -142,6 +150,12 @@ import AppCard from '@/components/AppCard.vue'
 
 const router = useRouter()
 const loginUserStore = useLoginUserStore()
+
+// 判断用户是否已登录
+const isLoggedIn = computed(() => {
+  const user = loginUserStore.loginUser
+  return user && user.userRole && user.userRole !== 'notLogin'
+})
 
 // 快捷提示词 - 改为生成类型词
 const quickPrompts = ref([
@@ -202,6 +216,13 @@ const handleCardAction = (actionKey: string, appData: API.AppVO) => {
 
 // 获取我的应用数据
 const fetchMyAppData = async () => {
+  // 未登录时不请求我的应用数据
+  if (!isLoggedIn.value) {
+    myAppData.value = []
+    myTotal.value = 0
+    return
+  }
+  
   const res = await listMyAppVoByPage({
     ...mySearchParams,
   })
@@ -277,6 +298,13 @@ const doGoodAppSearch = () => {
 
 // 创建应用
 const handleCreateApp = async (values: any) => {
+  // 未登录时提示登录
+  if (!isLoggedIn.value) {
+    message.warning('请先登录后再创建应用')
+    router.push('/user/login')
+    return
+  }
+  
   createLoading.value = true
   try {
     const res = await addApp(values)
@@ -358,6 +386,13 @@ const goToChat = (appId: string) => {
 
 // 使用快捷提示词 - 补充完整提示词
 const useQuickPrompt = (prompt: string) => {
+  // 未登录时提示登录
+  if (!isLoggedIn.value) {
+    message.warning('请先登录后再创建应用')
+    router.push('/user/login')
+    return
+  }
+  
   // 根据类型词生成完整提示词
   const promptMap: Record<string, string> = {
     '个人博客网站': '做一个个人博客网站，包含文章列表和详情页面',
@@ -514,6 +549,26 @@ onMounted(() => {
   justify-content: center;
   margin-top: 20px;
   margin-bottom: 20px;
+}
+
+.login-prompt {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 200px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  margin-top: 20px;
+}
+
+.login-prompt-content {
+  text-align: center;
+}
+
+.login-prompt-text {
+  font-size: 16px;
+  color: #666;
+  margin-bottom: 16px;
 }
 
 @media (max-width: 768px) {
