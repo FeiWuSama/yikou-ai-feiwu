@@ -44,7 +44,7 @@ import GlobalFooter from '@/components/GlobalFooter.vue'
 
 .content {
   flex: 1;
-  padding: 0 10px 10px 10px;
+  padding: 20px;
   margin: 0 auto;
   width: 100%;
 }
