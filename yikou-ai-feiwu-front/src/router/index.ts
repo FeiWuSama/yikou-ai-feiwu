@@ -7,6 +7,7 @@ import AppManagePage from '@/pages/admin/app/AppManagePage.vue'
 import AppUpdatePage from '@/components/AppUpdatePage.vue'
 import AppChatPage from '@/pages/app/AppChatPage.vue'
 import accessEnum from '@/access/accessEnum.ts'
+import AppEditPage from '@/pages/app/AppEditPage.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -57,6 +58,11 @@ const router = createRouter({
       meta: {
         access: accessEnum.USER
       }
+    },
+    {
+      path: '/app/edit/:id',
+      name: '编辑应用',
+      component: AppEditPage,
     },
   ],
 })

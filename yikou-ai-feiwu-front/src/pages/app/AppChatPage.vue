@@ -4,7 +4,15 @@
     <a-layout-header class="header">
       <div class="header-content">
         <div class="app-name">{{ appInfo.appName || '应用对话' }}</div>
-        <a-button type="primary" @click="doDeploy" :loading="deployLoading">部署</a-button>
+        <div class="buttons">
+          <a-button type="default" @click="showAppDetail">
+            <template #icon>
+              <InfoCircleOutlined />
+            </template>
+            应用详情
+          </a-button>
+          <a-button type="primary" @click="doDeploy" :loading="deployLoading">部署</a-button>
+        </div>
       </div>
     </a-layout-header>
     <a-layout class="main-layout">
@@ -29,11 +37,7 @@
                   :src="loginUserStore.loginUser.userAvatar"
                   :alt="loginUserStore.loginUser.userName"
                 />
-                <a-avatar
-                  v-else
-                  src="/src/assets/logo.png"
-                  alt="AI助手"
-                />
+                <a-avatar v-else src="/src/assets/logo.png" alt="AI助手" />
               </div>
               <div class="content">
                 <MarkdownRenderer v-if="msg.role === 'ai'" :content="msg.content" />
@@ -68,12 +72,25 @@
           <a-spin size="large" />
           <p>AI正在生成中...</p>
         </div>
-        <iframe v-else-if="previewUrl" :src="previewUrl" class="preview-frame" frameborder="0"></iframe>
+        <iframe
+          v-else-if="previewUrl"
+          :src="previewUrl"
+          class="preview-frame"
+          frameborder="0"
+        ></iframe>
         <div v-else class="empty-preview">
           <p>暂无预览内容</p>
         </div>
       </a-layout-sider>
     </a-layout>
+    <!-- 应用详情弹窗 -->
+    <AppDetailModal
+      v-model:open="appDetailVisible"
+      :app="appInfo"
+      :show-actions="isOwner || isAdmin"
+      @edit="editApp"
+      @delete="deleteApp"
+    />
     <!-- 部署成功弹窗 -->
     <DeploySuccessModal
       v-model:open="deployModalVisible"
@@ -86,13 +103,15 @@
 <script setup lang="ts">
 import { onMounted, ref, nextTick, computed } from 'vue'
 import { message } from 'ant-design-vue'
-import { useRoute } from 'vue-router'
-import { getAppVoById, deployApp } from '@/api/appController.ts'
+import { useRoute, useRouter } from 'vue-router'
+import { getAppVoById, deployApp, deleteApp as deleteAppApi } from '@/api/appController.ts'
 import { EventSourcePolyfill } from 'event-source-polyfill'
 import 'highlight.js/styles/github.css'
 import { useLoginUserStore } from '@/stores/loginUser.ts'
 import MarkdownRenderer from '@/components/MarkdownRenderer.vue'
 import DeploySuccessModal from '@/components/DeploySuccessModal.vue'
+import { InfoCircleOutlined } from '@ant-design/icons-vue'
+import AppDetailModal from '@/components/AppDetailModal.vue'
 
 const loginUserStore = useLoginUserStore()
 
@@ -340,6 +359,55 @@ const openDeployedSite = () => {
   }
 }
 
+// 权限相关
+const isOwner = computed(() => {
+  return appInfo.value?.userId === loginUserStore.loginUser.id
+})
+
+const isAdmin = computed(() => {
+  return loginUserStore.loginUser.userRole === 'admin'
+})
+
+// 应用详情相关
+const appDetailVisible = ref(false)
+
+const router = useRouter()
+
+// 显示应用详情
+const showAppDetail = () => {
+  appDetailVisible.value = true
+}
+// 编辑应用
+const editApp = () => {
+  if (appInfo.value?.id) {
+    router.push(`/app/edit/${appInfo.value.id}`)
+  }
+}
+
+// 删除应用
+const deleteApp = async () => {
+  if (!appInfo.value?.id) return
+
+  try {
+    const res = await deleteAppApi({ id: appInfo.value.id })
+    if (res.data.code === 0) {
+      message.success('删除成功')
+      appDetailVisible.value = false
+      router.push('/')
+    } else {
+      message.error('删除失败：' + res.data.message)
+    }
+  } catch (error) {
+    console.error('删除失败：', error)
+    message.error('删除失败')
+  }
+}
+
+// 页面加载时获取应用信息
+onMounted(() => {
+  fetchAppInfo()
+})
+
 // 页面加载时获取应用信息和用户信息
 onMounted(async () => {
   // 获取用户信息
@@ -380,6 +448,12 @@ onMounted(async () => {
 
 .main-layout {
   flex: 1;
+}
+
+.buttons{
+  display: flex;
+  justify-content: space-around;
+  gap: 15px;
 }
 
 .chat-container {
@@ -435,12 +509,6 @@ onMounted(async () => {
   margin-left: auto;
 }
 
-/* AI消息中的代码块样式 */
-.ai-content {
-  line-height: 1.6;
-  width: 100%;
-}
-
 .ai-content pre {
   background: #f8f8f8;
   border: 1px solid #e1e1e1;
@@ -467,41 +535,6 @@ onMounted(async () => {
   border-radius: 0;
 }
 
-/* 代码高亮样式增强 */
-.ai-content .hljs {
-  background: #f8f8f8;
-  padding: 0;
-}
-
-.ai-content .hljs-keyword {
-  color: #d73a49;
-  font-weight: bold;
-}
-
-.ai-content .hljs-string {
-  color: #032f62;
-}
-
-.ai-content .hljs-comment {
-  color: #6a737d;
-  font-style: italic;
-}
-
-.ai-content .hljs-function {
-  color: #6f42c1;
-}
-
-.ai-content .hljs-tag {
-  color: #22863a;
-}
-
-.ai-content .hljs-attr {
-  color: #6f42c1;
-}
-
-.ai-content .hljs-title {
-  color: #6f42c1;
-}
 
 .input-container {
   display: flex;
@@ -524,7 +557,7 @@ onMounted(async () => {
   border-radius: 0 8px 8px 0;
 }
 
-:deep(.ant-layout-sider-children){
+:deep(.ant-layout-sider-children) {
   display: flex;
   justify-content: center;
   align-items: center;
