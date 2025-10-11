@@ -68,12 +68,18 @@
           <a-spin size="large" />
           <p>AI正在生成中...</p>
         </div>
-        <iframe v-else-if="deployUrl" :src="deployUrl" class="preview-frame" frameborder="0"></iframe>
+        <iframe v-else-if="previewUrl" :src="previewUrl" class="preview-frame" frameborder="0"></iframe>
         <div v-else class="empty-preview">
           <p>暂无预览内容</p>
         </div>
       </a-layout-sider>
     </a-layout>
+    <!-- 部署成功弹窗 -->
+    <DeploySuccessModal
+      v-model:open="deployModalVisible"
+      :deploy-url="deployUrl"
+      @open-site="openDeployedSite"
+    />
   </div>
 </template>
 
@@ -86,6 +92,7 @@ import { EventSourcePolyfill } from 'event-source-polyfill'
 import 'highlight.js/styles/github.css'
 import { useLoginUserStore } from '@/stores/loginUser.ts'
 import MarkdownRenderer from '@/components/MarkdownRenderer.vue'
+import DeploySuccessModal from '@/components/DeploySuccessModal.vue'
 
 const loginUserStore = useLoginUserStore()
 
@@ -106,6 +113,10 @@ const messagesContainerHeight = ref(500)
 
 // 部署相关
 const deployLoading = ref(false)
+const previewUrl = ref<string>('')
+
+// 部署成功弹窗相关
+const deployModalVisible = ref(false)
 const deployUrl = ref('')
 
 // 流式响应相关
@@ -295,7 +306,7 @@ const scrollToBottom = () => {
 // 显示预览
 const showPreview = () => {
   if (appInfo.value.codeGenType && appInfo.value.id) {
-    deployUrl.value = `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8123/api'}/static/${appInfo.value.codeGenType}_${appInfo.value.id}/`
+    previewUrl.value = `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8123/api'}/static/${appInfo.value.codeGenType}_${appInfo.value.id}/`
   }
 }
 
@@ -305,13 +316,13 @@ const doDeploy = async () => {
     message.error('应用ID不存在')
     return
   }
-
   deployLoading.value = true
   try {
     const res = await deployApp({ appId: appId.value })
     if (res.data.code === 0 && res.data.data) {
-      message.success('部署成功')
+      // 显示部署成功弹窗
       deployUrl.value = res.data.data
+      deployModalVisible.value = true
     } else {
       message.error('部署失败，' + res.data.message)
     }
@@ -319,6 +330,13 @@ const doDeploy = async () => {
     message.error('部署失败，请重试')
   } finally {
     deployLoading.value = false
+  }
+}
+
+// 打开部署的网站
+const openDeployedSite = () => {
+  if (deployUrl.value) {
+    window.open(deployUrl.value, '_blank')
   }
 }
 
