@@ -5,13 +5,28 @@
       <a-form-item label="应用名称">
         <a-input v-model:value="searchParams.appName" placeholder="输入应用名称" />
       </a-form-item>
+      <a-form-item label="生成类型">
+        <a-select v-model:value="searchParams.codeGenType" placeholder="选择生成类型" style="width: 150px">
+          <a-select-option
+            v-for="option in CODE_GEN_TYPE_OPTIONS"
+            :key="option.value"
+            :value="option.value"
+            >{{ option.label }}
+          </a-select-option>
+        </a-select>
+      </a-form-item>
       <a-form-item>
         <a-button type="primary" html-type="submit">搜索</a-button>
       </a-form-item>
     </a-form>
     <a-divider />
     <!-- 表格 -->
-    <a-table :columns="columns" :data-source="data" :pagination="pagination" @change="doTableChange">
+    <a-table
+      :columns="columns"
+      :data-source="data"
+      :pagination="pagination"
+      @change="doTableChange"
+    >
       <template #bodyCell="{ column, record }">
         <template v-if="column.dataIndex === 'cover'">
           <a-image :src="record.cover || defaultCover" :width="120" />
@@ -23,7 +38,7 @@
         </template>
         <template v-else-if="column.dataIndex === 'priority'">
           <a-tag :color="record.priority && record.priority >= 99 ? 'green' : 'default'">
-            {{ record.priority === 99 ? '精选' : '普通'  }}
+            {{ record.priority === 99 ? '精选' : '普通' }}
           </a-tag>
         </template>
         <template v-else-if="column.dataIndex === 'createTime'">
@@ -36,8 +51,13 @@
           </div>
         </template>
         <template v-else-if="column.key === 'action'">
-          <a-button type="primary" @click="doEdit(record)" style="margin-right: 8px;margin-bottom: 8px">编辑</a-button>
-          <a-button @click="doSetGood(record)" style="margin-right: 8px;">
+          <a-button
+            type="primary"
+            @click="doEdit(record)"
+            style="margin-right: 8px; margin-bottom: 8px"
+            >编辑
+          </a-button>
+          <a-button @click="doSetGood(record)" style="margin-right: 8px">
             {{ record.priority && record.priority >= 99 ? '取消精选' : '设为精选' }}
           </a-button>
           <a-button danger @click="doDelete(record.id)">删除</a-button>
@@ -76,11 +96,12 @@ import {
   deleteAppByAdmin,
   listAppVoByPageByAdmin,
   updateAppByAdmin,
-  getAppVoByIdByAdmin
+  getAppVoByIdByAdmin,
 } from '@/api/appController.ts'
 import dayjs from 'dayjs'
 import defaultCover from '@/assets/logo.png'
 import { useRouter } from 'vue-router'
+import { CODE_GEN_TYPE_OPTIONS } from '@/utils/constants.ts'
 
 const router = useRouter()
 
@@ -231,7 +252,7 @@ const doDelete = async (id: number) => {
       } else {
         message.error('删除失败，' + (res.data.message || '未知错误'))
       }
-    }
+    },
   })
 }
 
@@ -261,7 +282,7 @@ const doSetGood = async (record: API.AppVO) => {
     id: appInfo.id,
     appName: appInfo.appName,
     cover: appInfo.cover,
-    priority: newPriority
+    priority: newPriority,
   })
 
   if (updateRes.data.code === 0) {
