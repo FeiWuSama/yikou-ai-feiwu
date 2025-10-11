@@ -533,6 +533,7 @@ onMounted(() => {
 }
 
 .app-cards {
+  margin: 0 auto;
   display: flex;
   flex-wrap: wrap;
   gap: 20px;

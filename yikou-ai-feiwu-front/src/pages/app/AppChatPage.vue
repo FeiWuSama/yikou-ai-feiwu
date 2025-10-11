@@ -36,9 +36,8 @@
                 />
               </div>
               <div class="content">
-                <MarkdownRenderer v-if="msg.role === 'ai' && msg.content" :content="msg.content" />
+                <MarkdownRenderer v-if="msg.role === 'ai'" :content="msg.content" />
                 <div v-else-if="msg.role === 'user'" class="user-content">{{ msg.content }}</div>
-                <div v-else class="ai-content">AI在生成代码中...</div>
               </div>
             </div>
           </div>
@@ -82,10 +81,8 @@
 import { onMounted, ref, nextTick, computed } from 'vue'
 import { message } from 'ant-design-vue'
 import { useRoute } from 'vue-router'
-import { getAppVoById, chatToGenCode, deployApp } from '@/api/appController.ts'
+import { getAppVoById, deployApp } from '@/api/appController.ts'
 import { EventSourcePolyfill } from 'event-source-polyfill'
-import { marked } from 'marked'
-import hljs from 'highlight.js'
 import 'highlight.js/styles/github.css'
 import { useLoginUserStore } from '@/stores/loginUser.ts'
 import MarkdownRenderer from '@/components/MarkdownRenderer.vue'
@@ -174,13 +171,14 @@ const sendInitialMessage = async (prompt: string) => {
     content: '',
   }
   messages.value.push(aiMsg)
+  const aiMsgIndex = messages.value.length - 1
 
   // 滚动到底部
   await nextTick()
   scrollToBottom()
 
   // 发送请求
-  await sendSSEMessage(prompt, aiMsg)
+  await sendSSEMessage(prompt, aiMsgIndex)
 }
 
 // 发送消息
@@ -207,17 +205,18 @@ const sendMessage = async () => {
     content: '',
   }
   messages.value.push(aiMsg)
+  const aiMsgIndex = messages.value.length - 1
 
   // 滚动到底部
   await nextTick()
   scrollToBottom()
 
   // 发送请求
-  await sendSSEMessage(userMsgContent, aiMsg)
+  await sendSSEMessage(userMsgContent, aiMsgIndex)
 }
 
 // 发送SSE消息
-const sendSSEMessage = async (content: string, aiMsg: any) => {
+const sendSSEMessage = async (content: string, aiMsgIndex: number) => {
   if (!appId.value) {
     message.error('应用ID不存在')
     return
@@ -235,10 +234,10 @@ const sendSSEMessage = async (content: string, aiMsg: any) => {
       },
     )
 
+    // 处理数据
+    let fullData = ''
     eventSource.onmessage = (event) => {
-      // 处理数据
       let processedData = ''
-
       try {
         // 解析JSON数据
         const jsonData = JSON.parse(event.data)
@@ -250,8 +249,11 @@ const sendSSEMessage = async (content: string, aiMsg: any) => {
         processedData = event.data
       }
 
-      // 更新AI消息内容
-      aiMsg.content += processedData
+      fullData += processedData
+      // 根据索引更新AI消息内容
+      if (messages.value[aiMsgIndex]) {
+        messages.value[aiMsgIndex].content = fullData
+      }
 
       // 强制更新DOM并滚动到底部
       nextTick().then(() => {
