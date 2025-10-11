@@ -518,7 +518,7 @@ onMounted(() => {
   flex-direction: column;
   gap: 24px;
   margin-top: 50px;
-  padding: 0 80px;
+  padding: 0 225px;
 }
 
 .section-title {
