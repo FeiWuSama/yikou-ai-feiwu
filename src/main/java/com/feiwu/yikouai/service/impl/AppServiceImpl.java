@@ -7,14 +7,18 @@ import cn.hutool.core.util.RandomUtil;
 import cn.hutool.core.util.StrUtil;
 import com.feiwu.yikouai.constant.AppConstant;
 import com.feiwu.yikouai.core.AiCodeGeneratorFacade;
+import com.feiwu.yikouai.core.parse.CodeParserExecutor;
+import com.feiwu.yikouai.core.saver.CodeFileSaverExecutor;
 import com.feiwu.yikouai.exception.BusinessException;
 import com.feiwu.yikouai.exception.ErrorCode;
 import com.feiwu.yikouai.exception.ThrowUtils;
 import com.feiwu.yikouai.model.dto.app.AppQueryDto;
 import com.feiwu.yikouai.model.entity.User;
+import com.feiwu.yikouai.model.enums.ChatHistoryMessageTypeEnum;
 import com.feiwu.yikouai.model.enums.CodeGenTypeEnum;
 import com.feiwu.yikouai.model.vo.user.UserVO;
 import com.feiwu.yikouai.model.vo.app.AppVO;
+import com.feiwu.yikouai.service.ChatHistoryService;
 import com.feiwu.yikouai.service.UserService;
 import com.mybatisflex.core.query.QueryWrapper;
 import com.mybatisflex.spring.service.impl.ServiceImpl;
@@ -22,10 +26,12 @@ import com.feiwu.yikouai.model.entity.App;
 import com.feiwu.yikouai.mapper.AppMapper;
 import com.feiwu.yikouai.service.AppService;
 import jakarta.annotation.Resource;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 
 import java.io.File;
+import java.io.Serializable;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -39,13 +45,17 @@ import java.util.stream.Collectors;
  * @author <a href="https://github.com/feiwusama">绯雾sama</a>
  */
 @Service
-public class AppServiceImpl extends ServiceImpl<AppMapper, App>  implements AppService{
+@Slf4j
+public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppService {
 
     @Resource
     private UserService userService;
 
     @Resource
     private AiCodeGeneratorFacade aiCodeGeneratorFacade;
+
+    @Resource
+    private ChatHistoryService chatHistoryService;
 
     @Override
     public Flux<String> chatToGenCode(Long appId, String message, User loginUser) {
@@ -65,8 +75,24 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App>  implements AppS
         if (codeGenTypeEnum == null) {
             throw new BusinessException(ErrorCode.SYSTEM_ERROR, "不支持的代码生成类型");
         }
-        // 5. 调用 AI 生成代码
-        return aiCodeGeneratorFacade.generateAndSaveCodeStream(message, codeGenTypeEnum, appId);
+        // 5. AI 生成代码前，先保存用户消息记录
+        chatHistoryService.addChatMessage(appId, message, ChatHistoryMessageTypeEnum.USER.getValue(), loginUser.getId());
+        // 6. 调用 AI 生成代码
+        Flux<String> aiContent = aiCodeGeneratorFacade.generateAndSaveCodeStream(message, codeGenTypeEnum, appId);
+        // 7. 收集 AI 响应的消息
+        StringBuilder aiContentBuilder = new StringBuilder();
+        return aiContent.map(chunk -> {
+            // 实时收集代码片段
+            aiContentBuilder.append(chunk);
+            return chunk;
+        }).doOnComplete(() -> {
+            // 流式返回完成后保存消息历史
+            String aiMessage = aiContentBuilder.toString();
+            chatHistoryService.addChatMessage(appId, aiMessage, ChatHistoryMessageTypeEnum.AI.getValue(), loginUser.getId());
+        }).doOnError(error -> {
+            // 如果 AI 生成代码失败，则保存错误信息
+            chatHistoryService.addChatMessage(appId, "AI回复失败" + error.getMessage(), ChatHistoryMessageTypeEnum.AI.getValue(), loginUser.getId());
+        });
     }
 
     @Override
@@ -113,7 +139,6 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App>  implements AppS
         // 9. 返回可访问的 URL
         return String.format("%s/%s/", AppConstant.CODE_DEPLOY_HOST, deployKey);
     }
-
 
 
     @Override
@@ -178,5 +203,33 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App>  implements AppS
             return appVO;
         }).collect(Collectors.toList());
     }
+
+    /**
+     * 删除应用时关联删除对话历史
+     *
+     * @param id 应用ID
+     * @return 是否成功
+     */
+    @Override
+    public boolean removeById(Serializable id) {
+        if (id == null) {
+            return false;
+        }
+        // 转换为 Long 类型
+        Long appId = Long.valueOf(id.toString());
+        if (appId <= 0) {
+            return false;
+        }
+        // 先删除关联的对话历史
+        try {
+            chatHistoryService.deleteByAppId(appId);
+        } catch (Exception e) {
+            // 记录日志但不阻止应用删除
+            log.error("删除应用关联对话历史失败: {}", e.getMessage());
+        }
+        // 删除应用
+        return super.removeById(id);
+    }
+
 
 }
