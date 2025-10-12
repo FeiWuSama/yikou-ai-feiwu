@@ -4,6 +4,7 @@ import UserLoginPage from '@/pages/user/UserLoginPage.vue'
 import UserRegisterPage from '@/pages/user/UserRegisterPage.vue'
 import UserManagePage from '@/pages/admin/UserManagePage.vue'
 import AppManagePage from '@/pages/admin/app/AppManagePage.vue'
+import ChatManagePage from '@/pages/admin/chat/ChatManagePage.vue'
 import AppUpdatePage from '@/components/AppUpdatePage.vue'
 import AppChatPage from '@/pages/app/AppChatPage.vue'
 import accessEnum from '@/access/accessEnum.ts'
@@ -39,6 +40,14 @@ const router = createRouter({
       path: '/admin/appManage',
       name: '应用管理',
       component: AppManagePage,
+      meta: {
+        access: accessEnum.ADMIN
+      }
+    },
+    {
+      path: '/admin/chatManage',
+      name: '对话管理',
+      component: ChatManagePage,
       meta: {
         access: accessEnum.ADMIN
       }

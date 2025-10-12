@@ -24,6 +24,16 @@
           ref="messagesContainerRef"
           :style="{ height: messagesContainerHeight + 'px' }"
         >
+          <div class="load-more-container" v-if="hasMoreMessages && messages.length > 0">
+            <a-button
+              type="link"
+              @click="loadChatHistory"
+              :loading="loadingHistory"
+              :disabled="loadingHistory"
+            >
+              加载更多
+            </a-button>
+          </div>
           <div
             v-for="msg in messages"
             :key="msg.id"
@@ -105,6 +115,7 @@ import { onMounted, ref, nextTick, computed } from 'vue'
 import { message } from 'ant-design-vue'
 import { useRoute, useRouter } from 'vue-router'
 import { getAppVoById, deployApp, deleteApp as deleteAppApi } from '@/api/appController.ts'
+import { listAppChatHistory } from '@/api/chatHistoryController.ts'
 import { EventSourcePolyfill } from 'event-source-polyfill'
 import 'highlight.js/styles/github.css'
 import { useLoginUserStore } from '@/stores/loginUser.ts'
@@ -141,6 +152,11 @@ const deployUrl = ref('')
 // 流式响应相关
 const streamLoading = ref(false)
 
+// 对话历史相关
+const lastCreateTime = ref<string | null>(null)
+const hasMoreMessages = ref(true)
+const loadingHistory = ref(false)
+
 // 权限相关
 // 判断是否为自己的应用
 const isMyApp = computed(() => {
@@ -174,13 +190,73 @@ const fetchAppInfo = async () => {
   const res = await getAppVoById({ id: id })
   if (res.data.code === 0 && res.data.data) {
     appInfo.value = res.data.data
-    // 检查是否有view参数，如果没有则自动发送初始提示词
-    const viewParam = route.query.view
-    if (!viewParam && appInfo.value.initPrompt) {
-      await sendInitialMessage(appInfo.value.initPrompt)
-    }
+    // 加载对话历史
+    await loadChatHistory()
+    // 检查是否需要自动发送初始提示词
+    checkAndSendInitialMessage()
   } else {
     message.error('获取应用信息失败，' + res.data.message)
+  }
+}
+
+// 加载对话历史
+const loadChatHistory = async () => {
+  if (!appId.value || !hasMoreMessages.value) {
+    return
+  }
+
+  loadingHistory.value = true
+  try {
+    const res = await listAppChatHistory({
+      appId: appId.value,
+      pageSize: 10,
+      ...(lastCreateTime.value ? { lastCreateTime: lastCreateTime.value } : {})
+    })
+
+    if (res.data.code === 0 && res.data.data) {
+      const records = res.data.data.records || []
+
+      // 如果没有更多消息，设置标志位
+      if (records.length < 10) {
+        hasMoreMessages.value = false
+      }
+
+      // 如果有记录，更新最后创建时间游标
+      if (records.length > 0) {
+        const lastRecord = records[records.length - 1]
+        lastCreateTime.value = lastRecord.createTime || null
+      }
+
+      // 将历史消息转换为前端格式并添加到消息列表开头
+      const historyMessages = records.map(record => ({
+        id: record.id || Date.now() + Math.random(),
+        role: record.messageType === 'user' ? 'user' : 'ai',
+        content: record.message || ''
+      })).reverse() // 按时间升序排列
+
+      // 添加到消息列表开头
+      messages.value = [...historyMessages, ...messages.value]
+
+      // 如果是第一次加载且消息数量大于等于2，显示预览
+      if (messages.value.length >= 2) {
+        debugger
+        showPreview()
+      }
+    } else {
+      message.error('获取对话历史失败，' + res.data.message)
+    }
+  } catch (error) {
+    message.error('获取对话历史失败，请重试')
+  } finally {
+    loadingHistory.value = false
+  }
+}
+
+// 检查并发送初始消息
+const checkAndSendInitialMessage = () => {
+  // 只有当是自己的应用且没有对话历史时才自动发送初始提示词
+  if (isMyApp.value && messages.value.length === 0 && appInfo.value.initPrompt) {
+    sendInitialMessage(appInfo.value.initPrompt)
   }
 }
 
@@ -324,6 +400,7 @@ const scrollToBottom = () => {
 
 // 显示预览
 const showPreview = () => {
+  debugger
   if (appInfo.value.codeGenType && appInfo.value.id) {
     previewUrl.value = `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8123/api'}/static/${appInfo.value.codeGenType}_${appInfo.value.id}/`
   }
@@ -468,6 +545,12 @@ onMounted(async () => {
   padding: 20px;
   background: #f5f5f5;
   border-radius: 8px;
+}
+
+.load-more-container {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 20px;
 }
 
 .message {

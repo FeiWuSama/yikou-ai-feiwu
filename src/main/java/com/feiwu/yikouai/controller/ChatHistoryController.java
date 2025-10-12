@@ -45,12 +45,12 @@ public class ChatHistoryController {
      * @return 对话历史分页
      */
     @GetMapping("/app/{appId}")
-    public BaseResponse<Page<ChatHistory>> listAppChatHistory(@PathVariable Long appId,
+    public BaseResponse<Page<ChatHistory>> listAppChatHistory(@PathVariable String appId,
                                                               @RequestParam(defaultValue = "10") int pageSize,
                                                               @RequestParam(required = false) LocalDateTime lastCreateTime,
                                                               HttpServletRequest request) {
         User loginUser = userService.getLoginUser(request);
-        Page<ChatHistory> result = chatHistoryService.listAppChatHistoryByPage(appId, pageSize, lastCreateTime, loginUser);
+        Page<ChatHistory> result = chatHistoryService.listAppChatHistoryByPage(Long.parseLong(appId), pageSize, lastCreateTime, loginUser);
         return ResultUtils.success(result);
     }
 
