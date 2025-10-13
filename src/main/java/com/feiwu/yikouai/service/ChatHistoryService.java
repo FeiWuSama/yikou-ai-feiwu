@@ -6,6 +6,7 @@ import com.mybatisflex.core.paginate.Page;
 import com.mybatisflex.core.query.QueryWrapper;
 import com.mybatisflex.core.service.IService;
 import com.feiwu.yikouai.model.entity.ChatHistory;
+import dev.langchain4j.memory.chat.MessageWindowChatMemory;
 
 import java.time.LocalDateTime;
 
@@ -55,4 +56,14 @@ public interface ChatHistoryService extends IService<ChatHistory> {
     Page<ChatHistory> listAppChatHistoryByPage(Long appId, int pageSize,
                                                LocalDateTime lastCreateTime,
                                                User loginUser);
+
+    /**
+     * 将聊天历史记录加载到内存中的方法
+     *
+     * @param appId      应用程序ID，用于标识特定的应用实例
+     * @param chatMemory 聊天记忆窗口对象，用于存储加载的聊天历史
+     * @param maxCount   最大加载的消息数量限制
+     * @return int 返回实际加载到内存中的消息数量
+     */
+    int loadChatHistoryToMemory(Long appId, MessageWindowChatMemory chatMemory, int maxCount);
 }

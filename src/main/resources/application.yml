@@ -6,6 +6,12 @@ spring:
     url: jdbc:mysql://192.168.10.101:3306/yikou_ai?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai
     username: root
     password: 815256031Hc!
+  data:
+    redis:
+      host: 192.168.10.101
+      port: 6379
+      ttl: 3600
+      password:
   profiles:
     active: local
 
