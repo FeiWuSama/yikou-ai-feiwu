@@ -6,6 +6,9 @@ spring:
     url: jdbc:mysql://192.168.10.101:3306/yikou_ai?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai
     username: root
     password: 815256031Hc!
+  session:
+    store-type: redis
+    timeout: 2592000
   data:
     redis:
       host: 192.168.10.101
@@ -19,6 +22,9 @@ server:
   port: 8123
   servlet:
     context-path: /api
+    session:
+      cookie:
+        max-age: 2592000
 
 # springdoc-openapi
 springdoc:
