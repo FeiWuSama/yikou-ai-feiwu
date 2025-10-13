@@ -479,11 +479,6 @@ const deleteApp = async () => {
   }
 }
 
-// 页面加载时获取应用信息
-onMounted(() => {
-  fetchAppInfo()
-})
-
 // 页面加载时获取应用信息和用户信息
 onMounted(async () => {
   // 获取用户信息
