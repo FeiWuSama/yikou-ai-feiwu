@@ -7,6 +7,7 @@ import cn.hutool.core.util.RandomUtil;
 import cn.hutool.core.util.StrUtil;
 import com.feiwu.yikouai.constant.AppConstant;
 import com.feiwu.yikouai.core.AiCodeGeneratorFacade;
+import com.feiwu.yikouai.core.handler.StreamHandlerExecutor;
 import com.feiwu.yikouai.core.parse.CodeParserExecutor;
 import com.feiwu.yikouai.core.saver.CodeFileSaverExecutor;
 import com.feiwu.yikouai.exception.BusinessException;
@@ -57,6 +58,9 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
     @Resource
     private ChatHistoryService chatHistoryService;
 
+    @Resource
+    private StreamHandlerExecutor streamHandlerExecutor;
+
     @Override
     public Flux<String> chatToGenCode(Long appId, String message, User loginUser) {
         // 1. 参数校验
@@ -80,19 +84,8 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         // 6. 调用 AI 生成代码
         Flux<String> aiContent = aiCodeGeneratorFacade.generateAndSaveCodeStream(message, codeGenTypeEnum, appId);
         // 7. 收集 AI 响应的消息
-        StringBuilder aiContentBuilder = new StringBuilder();
-        return aiContent.map(chunk -> {
-            // 实时收集代码片段
-            aiContentBuilder.append(chunk);
-            return chunk;
-        }).doOnComplete(() -> {
-            // 流式返回完成后保存消息历史
-            String aiMessage = aiContentBuilder.toString();
-            chatHistoryService.addChatMessage(appId, aiMessage, ChatHistoryMessageTypeEnum.AI.getValue(), loginUser.getId());
-        }).doOnError(error -> {
-            // 如果 AI 生成代码失败，则保存错误信息
-            chatHistoryService.addChatMessage(appId, "AI回复失败" + error.getMessage(), ChatHistoryMessageTypeEnum.AI.getValue(), loginUser.getId());
-        });
+        return streamHandlerExecutor.doExecute(aiContent, chatHistoryService, appId, loginUser, codeGenTypeEnum);
+
     }
 
     @Override
