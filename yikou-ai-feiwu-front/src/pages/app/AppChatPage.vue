@@ -123,6 +123,7 @@ import MarkdownRenderer from '@/components/MarkdownRenderer.vue'
 import DeploySuccessModal from '@/components/DeploySuccessModal.vue'
 import { InfoCircleOutlined } from '@ant-design/icons-vue'
 import AppDetailModal from '@/components/AppDetailModal.vue'
+import { getStaticPreviewUrl } from '@/config/env.ts'
 
 const loginUserStore = useLoginUserStore()
 
@@ -201,7 +202,6 @@ const fetchAppInfo = async () => {
 
 // 加载对话历史
 const loadChatHistory = async () => {
-  debugger
   if (!appId.value || !hasMoreMessages.value) {
     return
   }
@@ -401,7 +401,7 @@ const scrollToBottom = () => {
 // 显示预览
 const showPreview = () => {
   if (appInfo.value.codeGenType && appInfo.value.id) {
-    previewUrl.value = `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8123/api'}/static/${appInfo.value.codeGenType}_${appInfo.value.id}/`
+    previewUrl.value = getStaticPreviewUrl(appInfo.value.codeGenType, appInfo.value.id.toString())
   }
 }
 

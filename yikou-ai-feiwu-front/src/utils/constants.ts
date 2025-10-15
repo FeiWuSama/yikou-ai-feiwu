@@ -1,9 +1,13 @@
 /**
  * 代码生成类型枚举
  */
+/**
+ * 代码生成类型枚举
+ */
 export enum CodeGenTypeEnum {
   HTML = 'html',
   MULTI_FILE = 'multi_file',
+  VUE_PROJECT = 'vue_project',
 }
 
 /**
@@ -18,7 +22,11 @@ export const CODE_GEN_TYPE_CONFIG = {
     label: '原生多文件模式',
     value: CodeGenTypeEnum.MULTI_FILE,
   },
-} as const
+  [CodeGenTypeEnum.VUE_PROJECT]: {
+    label: 'Vue 项目模式',
+    value: CodeGenTypeEnum.VUE_PROJECT,
+  },
+}
 
 /**
  * 代码生成类型选项（用于下拉选择）

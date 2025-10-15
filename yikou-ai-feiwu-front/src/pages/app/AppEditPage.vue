@@ -3,7 +3,6 @@
     <div class="page-header">
       <h1>编辑应用信息</h1>
     </div>
-
     <div class="edit-container">
       <a-card title="基本信息" :loading="loading">
         <a-form
