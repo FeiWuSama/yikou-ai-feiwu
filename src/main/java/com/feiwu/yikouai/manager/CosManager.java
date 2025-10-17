@@ -49,7 +49,7 @@ public class CosManager {
         PutObjectResult result = putObject(key, file);
         if (result != null) {
             // 构建访问URL
-            String url = String.format("%s%s", cosClientConfig.getHost(), key);
+            String url = String.format("https://%s%s", cosClientConfig.getHost(), key);
             log.info("文件上传COS成功: {} -> {}", file.getName(), url);
             return url;
         } else {
