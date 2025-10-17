@@ -1,5 +1,6 @@
 package com.feiwu.yikouai.service;
 
+import com.feiwu.yikouai.model.dto.app.AppAddDto;
 import com.feiwu.yikouai.model.dto.app.AppQueryDto;
 import com.feiwu.yikouai.model.entity.User;
 import com.feiwu.yikouai.model.vo.app.AppVO;
@@ -18,6 +19,8 @@ import java.util.List;
 public interface AppService extends IService<App> {
 
     Flux<String> chatToGenCode(Long appId, String message, User loginUser);
+
+    Long createApp(AppAddDto appAddDto, User loginUser);
 
     String deployApp(Long appId, User loginUser);
 
