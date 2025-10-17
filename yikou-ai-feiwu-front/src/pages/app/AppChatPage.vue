@@ -3,7 +3,12 @@
     <!-- 顶部栏 -->
     <a-layout-header class="header">
       <div class="header-content">
-        <div class="app-name">{{ appInfo.appName || '应用对话' }}</div>
+        <div class="app-name">
+          {{ appInfo.appName || '应用对话' }}
+          <a-tag v-if="appInfo.codeGenType" color="blue" class="code-gen-type-tag">
+            {{ formatCodeGenType(appInfo.codeGenType) }}
+          </a-tag>
+        </div>
         <div class="buttons">
           <a-button type="default" @click="showAppDetail">
             <template #icon>
@@ -137,6 +142,7 @@ import { InfoCircleOutlined, DownloadOutlined } from '@ant-design/icons-vue'
 import AppDetailModal from '@/components/AppDetailModal.vue'
 import { getStaticPreviewUrl } from '@/config/env.ts'
 import request from '@/request.ts'
+import { formatCodeGenType } from '@/utils/codeGenTypes'
 
 const loginUserStore = useLoginUserStore()
 
@@ -569,8 +575,17 @@ onMounted(async () => {
 }
 
 .app-name {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
   font-size: 18px;
   font-weight: bold;
+}
+
+.code-gen-type-tag {
+  margin-top: 3px;
+  font-size: 12px;
 }
 
 .main-layout {
