@@ -12,6 +12,18 @@
             应用详情
           </a-button>
           <a-button type="primary" @click="doDeploy" :loading="deployLoading">部署</a-button>
+          <a-button
+            type="primary"
+            ghost
+            @click="downloadCode"
+            :loading="downloading"
+            :disabled="!isOwner"
+          >
+            <template #icon>
+              <DownloadOutlined />
+            </template>
+            下载代码
+          </a-button>
         </div>
       </div>
     </a-layout-header>
@@ -121,9 +133,10 @@ import 'highlight.js/styles/github.css'
 import { useLoginUserStore } from '@/stores/loginUser.ts'
 import MarkdownRenderer from '@/components/MarkdownRenderer.vue'
 import DeploySuccessModal from '@/components/DeploySuccessModal.vue'
-import { InfoCircleOutlined } from '@ant-design/icons-vue'
+import { InfoCircleOutlined, DownloadOutlined } from '@ant-design/icons-vue'
 import AppDetailModal from '@/components/AppDetailModal.vue'
 import { getStaticPreviewUrl } from '@/config/env.ts'
+import request from 'axios'
 
 const loginUserStore = useLoginUserStore()
 
@@ -211,7 +224,7 @@ const loadChatHistory = async () => {
     const res = await listAppChatHistory({
       appId: appId.value,
       pageSize: 10,
-      ...(lastCreateTime.value ? { lastCreateTime: lastCreateTime.value } : {})
+      ...(lastCreateTime.value ? { lastCreateTime: lastCreateTime.value } : {}),
     })
 
     if (res.data.code === 0 && res.data.data) {
@@ -229,11 +242,13 @@ const loadChatHistory = async () => {
       }
 
       // 将历史消息转换为前端格式并添加到消息列表开头
-      const historyMessages = records.map(record => ({
-        id: record.id || Date.now() + Math.random(),
-        role: record.messageType === 'user' ? 'user' : 'ai',
-        content: record.message || ''
-      })).reverse() // 按时间升序排列
+      const historyMessages = records
+        .map((record) => ({
+          id: record.id || Date.now() + Math.random(),
+          role: record.messageType === 'user' ? 'user' : 'ai',
+          content: record.message || '',
+        }))
+        .reverse() // 按时间升序排列
 
       // 添加到消息列表开头
       messages.value = [...historyMessages, ...messages.value]
@@ -444,6 +459,47 @@ const isAdmin = computed(() => {
   return loginUserStore.loginUser.userRole === 'admin'
 })
 
+// 下载相关
+const downloading = ref(false)
+
+// 下载代码
+const downloadCode = async () => {
+  if (!appId.value) {
+    message.error('应用ID不存在')
+    return
+  }
+  downloading.value = true
+  try {
+    const API_BASE_URL = request.defaults.baseURL || ''
+    const url = `${API_BASE_URL}/app/download/${appId.value}`
+    const response = await fetch(url, {
+      method: 'GET',
+      credentials: 'include',
+    })
+    if (!response.ok) {
+      throw new Error(`下载失败: ${response.status}`)
+    }
+    // 获取文件名
+    const contentDisposition = response.headers.get('Content-Disposition')
+    const fileName = contentDisposition?.match(/filename="(.+)"/)?.[1] || `app-${appId.value}.zip`
+    // 下载文件
+    const blob = await response.blob()
+    const downloadUrl = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = downloadUrl
+    link.download = fileName
+    link.click()
+    // 清理
+    URL.revokeObjectURL(downloadUrl)
+    message.success('代码下载成功')
+  } catch (error) {
+    console.error('下载失败：', error)
+    message.error('下载失败，请重试')
+  } finally {
+    downloading.value = false
+  }
+}
+
 // 应用详情相关
 const appDetailVisible = ref(false)
 
@@ -521,7 +577,7 @@ onMounted(async () => {
   flex: 1;
 }
 
-.buttons{
+.buttons {
   display: flex;
   justify-content: space-around;
   gap: 15px;
@@ -611,7 +667,6 @@ onMounted(async () => {
   padding: 0;
   border-radius: 0;
 }
-
 
 .input-container {
   display: flex;
