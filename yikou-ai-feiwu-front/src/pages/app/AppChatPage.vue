@@ -136,7 +136,7 @@ import DeploySuccessModal from '@/components/DeploySuccessModal.vue'
 import { InfoCircleOutlined, DownloadOutlined } from '@ant-design/icons-vue'
 import AppDetailModal from '@/components/AppDetailModal.vue'
 import { getStaticPreviewUrl } from '@/config/env.ts'
-import request from 'axios'
+import request from '@/request.ts'
 
 const loginUserStore = useLoginUserStore()
 
