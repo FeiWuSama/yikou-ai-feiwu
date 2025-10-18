@@ -29,6 +29,19 @@
             </template>
             下载代码
           </a-button>
+          <a-button
+            v-if="isOwner && previewUrl"
+            type="link"
+            :danger="isEditMode"
+            @click="toggleEditMode"
+            :class="{ 'edit-mode-active': isEditMode }"
+            style="padding: 0; height: auto; margin-right: 12px"
+          >
+            <template #icon>
+              <EditOutlined />
+            </template>
+            {{ isEditMode ? '退出编辑' : '编辑模式' }}
+          </a-button>
         </div>
       </div>
     </a-layout-header>
@@ -73,12 +86,49 @@
             </div>
           </div>
         </div>
+        <!-- 选中元素信息展示 -->
+        <a-alert
+          v-if="selectedElementInfo"
+          class="selected-element-alert"
+          type="info"
+          closable
+          @close="clearSelectedElement"
+        >
+          <template #message>
+            <div class="selected-element-info">
+              <div class="element-header">
+                <span class="element-tag">
+                  选中元素：{{ selectedElementInfo.tagName.toLowerCase() }}
+                </span>
+                <span v-if="selectedElementInfo.id" class="element-id">
+                  #{{ selectedElementInfo.id }}
+                </span>
+                <span v-if="selectedElementInfo.className" class="element-class">
+                  .{{ selectedElementInfo.className.split(' ').join('.') }}
+                </span>
+              </div>
+              <div class="element-details">
+                <div v-if="selectedElementInfo.textContent" class="element-item">
+                  内容: {{ selectedElementInfo.textContent.substring(0, 50) }}
+                  {{ selectedElementInfo.textContent.length > 50 ? '...' : '' }}
+                </div>
+                <div v-if="selectedElementInfo.pagePath" class="element-item">
+                  页面路径: {{ selectedElementInfo.pagePath }}
+                </div>
+                <div class="element-item">
+                  选择器:
+                  <code class="element-selector-code">{{ selectedElementInfo.selector }}</code>
+                </div>
+              </div>
+            </div>
+          </template>
+        </a-alert>
         <!-- 输入框 -->
         <div class="input-container">
           <a-tooltip :title="isInputDisabled ? '无法在别人的作品下对话哦~' : ''" placement="top">
             <a-input
               v-model:value="inputMessage"
-              placeholder="请输入消息..."
+              :placeholder="getInputPlaceholder()"
               @pressEnter="sendMessage"
               :disabled="sending || isInputDisabled"
             />
@@ -138,11 +188,12 @@ import 'highlight.js/styles/github.css'
 import { useLoginUserStore } from '@/stores/loginUser.ts'
 import MarkdownRenderer from '@/components/MarkdownRenderer.vue'
 import DeploySuccessModal from '@/components/DeploySuccessModal.vue'
-import { InfoCircleOutlined, DownloadOutlined } from '@ant-design/icons-vue'
+import { InfoCircleOutlined, DownloadOutlined, EditOutlined } from '@ant-design/icons-vue'
 import AppDetailModal from '@/components/AppDetailModal.vue'
 import { getStaticPreviewUrl } from '@/config/env.ts'
 import request from '@/request.ts'
 import { formatCodeGenType } from '@/utils/codeGenTypes'
+import { type ElementInfo, VisualEditor } from '@/utils/visualEditor.ts'
 
 const loginUserStore = useLoginUserStore()
 
@@ -183,6 +234,15 @@ const isMyApp = computed(() => {
   return appInfo.value.userId === loginUserStore.loginUser.id
 })
 
+// 可视化编辑相关
+const isEditMode = ref(false)
+const selectedElementInfo = ref<ElementInfo | null>(null)
+const visualEditor = new VisualEditor({
+  onElementSelected: (elementInfo: ElementInfo) => {
+    selectedElementInfo.value = elementInfo
+  },
+})
+
 // 输入框禁用状态
 const isInputDisabled = computed(() => {
   // 如果应用信息还未加载，不禁用
@@ -196,6 +256,29 @@ const isInputDisabled = computed(() => {
   // 如果不是自己的应用，禁用输入框
   return true
 })
+
+// 可视化编辑相关函数
+const toggleEditMode = () => {
+  debugger
+  // 检查 iframe 是否已经加载
+  const iframe = document.querySelector('.preview-frame') as HTMLIFrameElement
+  if (!iframe) {
+    message.warning('请等待页面加载完成')
+    return
+  }
+  // 确保 visualEditor 已初始化
+  if (!previewUrl.value) {
+    message.warning('请等待页面加载完成')
+    return
+  }
+  const newEditMode = visualEditor.toggleEditMode()
+  isEditMode.value = newEditMode
+}
+
+const clearSelectedElement = () => {
+  selectedElementInfo.value = null
+  visualEditor.clearSelection()
+}
 
 // 获取应用信息
 const fetchAppInfo = async () => {
@@ -217,6 +300,13 @@ const fetchAppInfo = async () => {
   } else {
     message.error('获取应用信息失败，' + res.data.message)
   }
+}
+
+const getInputPlaceholder = () => {
+  if (selectedElementInfo.value) {
+    return `正在编辑 ${selectedElementInfo.value.tagName.toLowerCase()} 元素，描述您想要的修改...`
+  }
+  return '请描述你想生成的网站，越详细效果越好哦'
 }
 
 // 加载对话历史
@@ -314,8 +404,20 @@ const sendMessage = async () => {
     return
   }
 
-  const userMsgContent = inputMessage.value
+  let userMsgContent = inputMessage.value
   inputMessage.value = ''
+  // 如果有选中的元素，将元素信息添加到提示词中
+  if (selectedElementInfo.value) {
+    let elementContext = `\n\n选中元素信息：`
+    if (selectedElementInfo.value.pagePath) {
+      elementContext += `\n- 页面路径: ${selectedElementInfo.value.pagePath}`
+    }
+    elementContext += `\n- 标签: ${selectedElementInfo.value.tagName.toLowerCase()}\n- 选择器: ${selectedElementInfo.value.selector}`
+    if (selectedElementInfo.value.textContent) {
+      elementContext += `\n- 当前内容: ${selectedElementInfo.value.textContent.substring(0, 100)}`
+    }
+    userMsgContent += elementContext
+  }
 
   // 添加用户消息
   const userMsg = {
@@ -541,12 +643,26 @@ const deleteApp = async () => {
   }
 }
 
+//iframe加载完成
+const onIframeLoad = () => {
+  const iframe = document.querySelector('.preview-frame') as HTMLIFrameElement
+  if (iframe) {
+    visualEditor.init(iframe)
+    visualEditor.onIframeLoad()
+  }
+}
+
 // 页面加载时获取应用信息和用户信息
 onMounted(async () => {
   // 获取用户信息
   await loginUserStore.fetchLoginUser()
   // 获取应用信息
   await fetchAppInfo()
+  onIframeLoad()
+  //监听iframe消息
+  window.addEventListener('message', (event) => {
+    visualEditor.handleIframeMessage(event)
+  })
 })
 </script>
 
@@ -649,6 +765,58 @@ onMounted(async () => {
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
   max-width: 80%;
   word-wrap: break-word;
+}
+
+.selected-element-alert {
+  margin: 5px 16px;
+}
+
+.selected-element-info {
+  line-height: 1.4;
+}
+
+.element-header {
+  margin-bottom: 8px;
+}
+
+.element-details {
+  margin-top: 8px;
+}
+
+.element-item {
+  margin-bottom: 4px;
+  font-size: 12px;
+}
+
+.element-item:last-child {
+  margin-bottom: 0;
+}
+
+.element-tag {
+  font-family: 'Monaco', 'Menlo', monospace;
+  font-size: 14px;
+  font-weight: 600;
+  color: #007bff;
+}
+
+.element-id{
+  color: #28a745;
+  margin-left: 4px;
+}
+
+.element-class {
+  color: #ffc107;
+  margin-left: 4px;
+}
+
+.element-selector-code {
+  font-family: 'Monaco', 'Menlo', monospace;
+  background: #f6f8fa;
+  padding: 2px 4px;
+  border-radius: 3px;
+  font-size: 12px;
+  color: #d73a49;
+  border: 1px solid #e1e4e8;
 }
 
 .message.user .content {
