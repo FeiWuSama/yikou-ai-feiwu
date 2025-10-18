@@ -1,6 +1,6 @@
 package com.feiwu.yikouai.ai;
 
-import com.feiwu.yikouai.ai.tools.FileWriteTool;
+import com.feiwu.yikouai.ai.tools.*;
 import com.feiwu.yikouai.exception.BusinessException;
 import com.feiwu.yikouai.exception.ErrorCode;
 import com.feiwu.yikouai.model.enums.CodeGenTypeEnum;
@@ -38,6 +38,9 @@ public class AiCodeGeneratorServiceFactory {
 
     @Resource
     private ChatHistoryService chatHistoryService;
+
+    @Resource
+    private ToolManager toolManager;
 
     /**
      * AI 服务实例缓存
@@ -96,7 +99,7 @@ public class AiCodeGeneratorServiceFactory {
             case VUE_PROJECT -> AiServices.builder(AiCodeGeneratorService.class)
                     .streamingChatModel(reasoningStreamingChatModel)
                     .chatMemoryProvider(memoryId -> chatMemory)
-                    .tools(new FileWriteTool())
+                    .tools(toolManager.getAllTools())
                     .hallucinatedToolNameStrategy(toolExecutionRequest -> ToolExecutionResultMessage.from(
                             toolExecutionRequest, "Error: there is no tool called " + toolExecutionRequest.name()
                     ))
