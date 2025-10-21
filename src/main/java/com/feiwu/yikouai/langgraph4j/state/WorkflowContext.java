@@ -1,6 +1,7 @@
 package com.feiwu.yikouai.langgraph4j.state;
 
 import com.feiwu.yikouai.langgraph4j.model.ImageResource;
+import com.feiwu.yikouai.langgraph4j.model.QualityResult;
 import com.feiwu.yikouai.model.enums.CodeGenTypeEnum;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -74,6 +75,12 @@ public class WorkflowContext implements Serializable {
 
     @Serial
     private static final long serialVersionUID = 1L;
+
+    /**
+     * 质量检查结果
+     */
+    private QualityResult qualityResult;
+
 
     // ========== 上下文操作方法 ==========
 
