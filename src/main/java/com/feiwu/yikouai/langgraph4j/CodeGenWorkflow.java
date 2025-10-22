@@ -2,6 +2,7 @@ package com.feiwu.yikouai.langgraph4j;
 
 import com.feiwu.yikouai.exception.BusinessException;
 import com.feiwu.yikouai.exception.ErrorCode;
+import com.feiwu.yikouai.langgraph4j.node.ImageCollectorNode;
 import com.feiwu.yikouai.langgraph4j.model.QualityResult;
 import com.feiwu.yikouai.langgraph4j.node.*;
 import com.feiwu.yikouai.langgraph4j.state.WorkflowContext;
