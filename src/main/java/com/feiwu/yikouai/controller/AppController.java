@@ -4,6 +4,7 @@ import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.util.StrUtil;
 import cn.hutool.json.JSONUtil;
 import com.feiwu.yikouai.annotation.AuthCheck;
+import com.feiwu.yikouai.annotation.RateLimit;
 import com.feiwu.yikouai.common.BaseResponse;
 import com.feiwu.yikouai.common.DeleteRequest;
 import com.feiwu.yikouai.common.ResultUtils;
@@ -12,6 +13,7 @@ import com.feiwu.yikouai.constant.UserConstant;
 import com.feiwu.yikouai.exception.BusinessException;
 import com.feiwu.yikouai.exception.ErrorCode;
 import com.feiwu.yikouai.exception.ThrowUtils;
+import com.feiwu.yikouai.langgraph4j.model.enums.RateLimitType;
 import com.feiwu.yikouai.model.dto.app.*;
 import com.feiwu.yikouai.model.entity.User;
 import com.feiwu.yikouai.model.enums.CodeGenTypeEnum;
@@ -64,6 +66,7 @@ public class AppController {
      * @return 生成结果流
      */
     @GetMapping(value = "/chat/gen/code", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    @RateLimit(limitType = RateLimitType.USER, rate = 5, rateInterval = 60, message = "AI 对话请求过于频繁，请稍后再试")
     public Flux<ServerSentEvent<String>> chatToGenCode(@RequestParam Long appId,
                                                        @RequestParam String message,
                                                        HttpServletRequest request) {
