@@ -1,5 +1,7 @@
 package com.feiwu.yikouai.ai;
 
+import com.feiwu.yikouai.ai.guardrail.PromptSafetyInputGuardrail;
+import com.feiwu.yikouai.ai.guardrail.RetryOutputGuardrail;
 import com.feiwu.yikouai.ai.tools.*;
 import com.feiwu.yikouai.exception.BusinessException;
 import com.feiwu.yikouai.exception.ErrorCode;
@@ -98,6 +100,9 @@ public class AiCodeGeneratorServiceFactory {
                         .hallucinatedToolNameStrategy(toolExecutionRequest -> ToolExecutionResultMessage.from(
                                 toolExecutionRequest, "Error: there is no tool called " + toolExecutionRequest.name()
                         ))
+                        .inputGuardrails(new PromptSafetyInputGuardrail())
+                        .maxSequentialToolsInvocations(20)
+//                        .outputGuardrails(new RetryOutputGuardrail())
                         .build();
             }
             case HTML, MULTI_FILE -> {
@@ -107,6 +112,9 @@ public class AiCodeGeneratorServiceFactory {
                         .chatModel(chatModel)
                         .streamingChatModel(openAiStreamingChatModel)
                         .chatMemory(chatMemory)
+                        .inputGuardrails(new PromptSafetyInputGuardrail())
+                        .maxSequentialToolsInvocations(20)
+//                        .outputGuardrails(new RetryOutputGuardrail())
                         .build();
             }
             default -> throw new BusinessException(ErrorCode.SYSTEM_ERROR,
