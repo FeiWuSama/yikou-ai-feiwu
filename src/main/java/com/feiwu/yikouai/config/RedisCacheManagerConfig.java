@@ -1,6 +1,8 @@
 package com.feiwu.yikouai.config;
 
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.jsontype.impl.LaissezFaireSubTypeValidator;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import jakarta.annotation.Resource;
 import org.springframework.cache.CacheManager;
@@ -26,17 +28,20 @@ public class RedisCacheManagerConfig {
         // 配置 ObjectMapper 支持 Java8 时间类型
         ObjectMapper objectMapper = new ObjectMapper();
         objectMapper.registerModule(new JavaTimeModule());
-        
+        // 添加类名元信息
+        objectMapper.activateDefaultTyping(LaissezFaireSubTypeValidator.instance,
+                ObjectMapper.DefaultTyping.NON_FINAL, JsonTypeInfo.As.PROPERTY);
+
         // 默认配置
         RedisCacheConfiguration defaultConfig = RedisCacheConfiguration.defaultCacheConfig()
                 .entryTtl(Duration.ofMinutes(30)) // 默认 30 分钟过期
                 .disableCachingNullValues() // 禁用 null 值缓存
                 // key 使用 String 序列化器
                 .serializeKeysWith(RedisSerializationContext.SerializationPair
-                        .fromSerializer(new StringRedisSerializer()));
+                        .fromSerializer(new StringRedisSerializer()))
                 // value 使用 JSON 序列化器（支持复杂对象）
-//                .serializeValuesWith(RedisSerializationContext.SerializationPair
-//                        .fromSerializer(new GenericJackson2JsonRedisSerializer(objectMapper)));
+                .serializeValuesWith(RedisSerializationContext.SerializationPair
+                        .fromSerializer(new GenericJackson2JsonRedisSerializer(objectMapper)));
         
         return RedisCacheManager.builder(redisConnectionFactory)
                 .cacheDefaults(defaultConfig)
