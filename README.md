@@ -5,14 +5,14 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/your-username/yikou-ai-feiwu/stargazers">
-    <img src="https://img.shields.io/github/stars/your-username/yikou-ai-feiwu" alt="GitHub Stars">
+  <a href="https://github.com/FeiWuSama/yikou-ai-feiwu/stargazers">
+    <img src="https://img.shields.io/github/stars/FeiWuSama/yikou-ai-feiwu" alt="GitHub Stars">
   </a>
-  <a href="https://github.com/your-username/yikou-ai-feiwu/issues">
-    <img src="https://img.shields.io/github/issues/your-username/yikou-ai-feiwu" alt="GitHub Issues">
+  <a href="https://github.com/FeiWuSama/yikou-ai-feiwu/issues">
+    <img src="https://img.shields.io/github/issues/FeiWuSama/yikou-ai-feiwu" alt="GitHub Issues">
   </a>
-  <a href="https://github.com/your-username/yikou-ai-feiwu/blob/main/LICENSE">
-    <img src="https://img.shields.io/github/license/your-username/yikou-ai-feiwu" alt="GitHub License">
+  <a href="https://github.com/FeiWuSama/yikou-ai-feiwu/blob/main/LICENSE">
+    <img src="https://img.shields.io/github/license/FeiWuSama/yikou-ai-feiwu" alt="GitHub License">
   </a>
 </p>
 
