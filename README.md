@@ -15,6 +15,36 @@
 
 易扣AI是一个基于人工智能的零代码应用生成平台，用户只需描述需求，即可自动生成完整的Web应用程序。平台支持多种应用类型，包括静态网站、多页面应用和Vue项目，并提供可视化编辑功能。
 
+## 项目演示
+
+<p align="center">
+  <img src="images/1.png" alt="项目演示图1" width="700">
+</p>
+
+<p align="center">
+  <img src="images/2.png" alt="项目演示图2" width="700">
+</p>
+
+<p align="center">
+  <img src="images/3.png" alt="项目演示图3" width="700">
+</p>
+
+<p align="center">
+  <img src="images/4.png" alt="项目演示图4" width="700">
+</p>
+
+<p align="center">
+  <img src="images/5.png" alt="项目演示图5" width="700">
+</p>
+
+<p align="center">
+  <img src="images/6.png" alt="项目演示图6" width="700">
+</p>
+
+<p align="center">
+  <img src="images/7.png" alt="项目演示图7" width="700">
+</p>
+
 ## 🌟 特性
 
 - **零代码开发**：通过自然语言描述需求，自动生成完整应用
