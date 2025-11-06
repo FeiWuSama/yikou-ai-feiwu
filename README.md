@@ -45,6 +45,10 @@
   <img src="images/7.png" alt="项目演示图7" width="700">
 </p>
 
+<p align="center">
+  <img src="images/8.png" alt="项目演示图8" width="700">
+</p>
+
 ## 🌟 特性
 
 - **零代码开发**：通过自然语言描述需求，自动生成完整应用
