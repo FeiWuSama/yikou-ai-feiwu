@@ -5,11 +5,11 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/feiwu-sama/yikou-ai-feiwu/stargazers">
-    <img src="https://img.shields.io/github/stars/feiwu-sama/yikou-ai-feiwu" alt="GitHub Stars">
+  <a href="https://github.com/FeiWuSama/yikou-ai-feiwu/stargazers">
+    <img src="https://img.shields.io/github/stars/FeiWuSama/yikou-ai-feiwu" alt="GitHub Stars">
   </a>
-  <a href="https://github.com/feiwu-sama/yikou-ai-feiwu/issues">
-    <img src="https://img.shields.io/github/issues/feiwu-sama/yikou-ai-feiwu" alt="GitHub Issues">
+  <a href="https://github.com/FeiWuSama/yikou-ai-feiwu/issues">
+    <img src="https://img.shields.io/github/issues/FeiWuSama/yikou-ai-feiwu" alt="GitHub Issues">
   </a>
 </p>
 
