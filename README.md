@@ -5,14 +5,14 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/FeiWuSama/yikou-ai-feiwu/stargazers">
-    <img src="https://img.shields.io/github/stars/FeiWuSama/yikou-ai-feiwu" alt="GitHub Stars">
+  <a href="https://github.com/your-username/yikou-ai-feiwu/stargazers">
+    <img src="https://img.shields.io/github/stars/your-username/yikou-ai-feiwu" alt="GitHub Stars">
   </a>
-  <a href="https://github.com/FeiWuSama/yikou-ai-feiwu/issues">
-    <img src="https://img.shields.io/github/issues/FeiWuSama/yikou-ai-feiwu" alt="GitHub Issues">
+  <a href="https://github.com/your-username/yikou-ai-feiwu/issues">
+    <img src="https://img.shields.io/github/issues/your-username/yikou-ai-feiwu" alt="GitHub Issues">
   </a>
-  <a href="https://github.com/FeiWuSama/yikou-ai-feiwu/blob/main/LICENSE">
-    <img src="https://img.shields.io/github/license/FeiWuSama/yikou-ai-feiwu" alt="GitHub License">
+  <a href="https://github.com/your-username/yikou-ai-feiwu/blob/main/LICENSE">
+    <img src="https://img.shields.io/github/license/your-username/yikou-ai-feiwu" alt="GitHub License">
   </a>
 </p>
 
@@ -117,6 +117,59 @@ yikou-ai-feiwu/
 └── sql/                        # 数据库脚本
 ```
 
+### 项目结构图
+
+```mermaid
+graph TD
+    A[用户界面] --> B(前端应用 Vue3 + TS)
+    B --> C{API网关}
+    
+    C --> D[用户管理]
+    C --> E[应用管理]
+    C --> F[对话历史]
+    C --> G[静态资源]
+    
+    D --> H[(MySQL数据库)]
+    E --> H
+    F --> H
+    
+    C --> I[AI代码生成引擎]
+    I --> J[LangChain4j]
+    J --> K[多种AI模型]
+    K --> L[OpenAI]
+    K --> M[阿里云DashScope]
+    
+    I --> N[代码解析器]
+    N --> O[文件系统操作]
+    
+    I --> P[LangGraph工作流]
+    P --> Q[代码生成节点]
+    P --> R[质量检查节点]
+    P --> S[项目构建节点]
+    
+    O --> T[生成的应用文件]
+    
+    subgraph 后端服务
+        D
+        E
+        F
+        G
+        I
+        J
+        P
+    end
+    
+    subgraph 数据存储
+        H
+    end
+    
+    subgraph AI服务
+        K
+        L
+        M
+    end
+```
+
 ## 🧠 核心功能
 
 ### 应用生成流程
@@ -136,6 +189,64 @@ yikou-ai-feiwu/
 - 一键部署生成的应用
 - 支持自定义部署域名
 - 自动生成部署链接
+
+## 📦 功能模块
+
+### 后端功能模块
+
+#### AI代码生成模块
+- **AiCodeGeneratorService**: AI代码生成服务，支持多种代码生成类型
+- **AiCodeGenTypeRoutingService**: 代码生成类型路由服务，根据需求选择合适的生成策略
+- **工具调用模块**: 提供文件读写、目录操作等工具支持AI生成代码
+- **输出防护模块**: 包含Prompt安全检查和重试机制
+
+#### 核心处理模块
+- **AiCodeGeneratorFacade**: AI代码生成门面，统一处理代码生成流程
+- **CodeParser**: 代码解析器，解析AI生成的代码内容
+- **CodeFileSaver**: 代码文件保存器，将生成的代码保存到文件系统
+- **StreamHandlerExecutor**: 流式处理执行器，处理AI流式响应
+
+#### LangGraph工作流模块
+- **CodeGenWorkflow**: 代码生成工作流，编排整个生成过程
+- **CodeGenConcurrentWorkflow**: 并行代码生成工作流
+- **各种节点实现**: 包括代码生成节点、质量检查节点、项目构建节点等
+- **图像收集模块**: 支持为应用添加图片、图标、图表等视觉元素
+
+#### 业务功能模块
+- **UserController**: 用户管理控制器，处理用户注册、登录等操作
+- **AppController**: 应用管理控制器，处理应用创建、查询、更新、删除
+- **ChatHistoryController**: 对话历史控制器，管理用户与AI的交互记录
+- **StaticResourceController**: 静态资源控制器，提供应用预览和下载功能
+
+#### 基础支撑模块
+- **认证授权模块**: 包含注解式权限检查和拦截器
+- **限流模块**: 基于注解的限流实现
+- **配置管理模块**: 统一管理系统各项配置
+- **异常处理模块**: 全局异常处理机制
+- **监控模块**: AI模型调用监控和性能指标收集
+
+### 前端功能模块
+
+#### 页面组件模块
+- **HomePage**: 首页，展示应用列表和创建入口
+- **AppChatPage**: 应用聊天页面，用户在此描述需求生成应用
+- **AppEditPage**: 应用编辑页面，支持可视化编辑功能
+- **UserLoginPage/UserRegisterPage**: 用户登录注册页面
+- **Admin管理页面**: 用户管理和系统监控后台
+
+#### 核心功能组件
+- **AppCard**: 应用卡片组件，展示应用基本信息
+- **AppDetailModal**: 应用详情模态框
+- **DeploySuccessModal**: 部署成功提示模态框
+- **MarkdownRenderer**: Markdown渲染组件
+- **GlobalHeader/GlobalFooter**: 全局头部和底部组件
+
+#### 业务逻辑模块
+- **API接口模块**: 封装所有后端API调用
+- **状态管理**: 使用Pinia管理用户登录状态
+- **路由管理**: Vue Router配置，管理页面跳转
+- **权限控制**: 前端访问权限控制
+- **工具函数**: 包括时间处理、常量定义等辅助功能
 
 ## 🛠️ 开发指南
 
