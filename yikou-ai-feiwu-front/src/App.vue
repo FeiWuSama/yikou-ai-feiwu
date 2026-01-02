@@ -1,13 +1,18 @@
 <script setup lang="ts">
 import BasicLayout from '@/layouts/BasicLayout.vue'
 import { useLoginUserStore } from '@/stores/loginUser.ts'
+import zhCN from 'ant-design-vue/es/locale/zh_CN';
 
 const loginUserStore = useLoginUserStore()
 loginUserStore.fetchLoginUser()
+
+const locale = zhCN
 </script>
 
 <template>
-  <BasicLayout />
+  <a-config-provider :locale="locale">
+    <BasicLayout />
+  </a-config-provider>
 </template>
 
 <style scoped>
