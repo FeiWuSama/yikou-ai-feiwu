@@ -42,6 +42,12 @@
               </a-button>
             </a-space>
           </template>
+          <template v-else-if="column.key === 'userAvatar'">
+            <a-avatar :src="record.userAvatar" />
+          </template>
+          <template v-else-if="column.key === 'createTime'">
+            {{ formatTime(record.createTime) }}
+          </template>
         </template>
       </a-table>
     </a-card>
@@ -73,6 +79,7 @@ import { ref, reactive, computed, onMounted } from 'vue'
 import { message, Modal } from 'ant-design-vue'
 import { listUserVoByPage, updateUser, deleteUser } from '@/api/userController'
 import type { FormInstance } from 'ant-design-vue'
+import { formatTime } from '@/utils/time'
 
 const loading = ref(false)
 const submitting = ref(false)
@@ -97,13 +104,13 @@ const editForm = reactive<API.UserUpdateDto>({
 // 表单验证规则
 const rules = {
   userName: [{ required: true, message: '请输入用户名', trigger: 'blur' }],
-  userAccount: [{ required: true, message: '请输入账号', trigger: 'blur' }],
   userRole: [{ required: true, message: '请选择角色', trigger: 'change' }],
 }
 
 // 表格列配置
 const columns = [
   { title: 'ID', dataIndex: 'id', key: 'id', width: 80 },
+  { title: '头像', dataIndex: 'userAvatar', key: 'userAvatar', width: 80 },
   { title: '用户名', dataIndex: 'userName', key: 'userName' },
   { title: '账号', dataIndex: 'userAccount', key: 'userAccount' },
   { title: '角色', dataIndex: 'userRole', key: 'userRole' },
