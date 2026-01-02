@@ -525,6 +525,7 @@ onMounted(() => {
   font-size: 20px;
   font-weight: bold;
   margin-bottom: 5px;
+  margin-left: 100px;
   color: #333;
 }
 
