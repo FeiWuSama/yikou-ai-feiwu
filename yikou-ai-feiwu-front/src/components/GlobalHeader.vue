@@ -31,6 +31,10 @@
           </a-space>
           <template #overlay>
             <a-menu>
+              <a-menu-item @click="goToUserCenter">
+                <UserOutlined />
+                个人中心
+              </a-menu-item>
               <a-menu-item @click="doLogout">
                 <LogoutOutlined />
                 退出登录
@@ -50,7 +54,7 @@
 import { ref } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
 import { useLoginUserStore } from '@/stores/loginUser.ts'
-import { LogoutOutlined } from '@ant-design/icons-vue'
+import { LogoutOutlined, UserOutlined } from '@ant-design/icons-vue'
 import { userLogout } from '@/api/userController.ts'
 import { message } from 'ant-design-vue'
 
@@ -76,6 +80,11 @@ const doLogout = async () => {
   } else {
     message.error('退出登录失败，' + res.data.message)
   }
+}
+
+// 跳转到个人中心
+const goToUserCenter = () => {
+  router.push('/user/center')
 }
 </script>
 
