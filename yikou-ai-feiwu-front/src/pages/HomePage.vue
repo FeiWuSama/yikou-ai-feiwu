@@ -402,8 +402,8 @@ const useQuickPrompt = (prompt: string) => {
   const fullPrompt = promptMap[prompt] || `${prompt}`
 
   createForm.initPrompt = fullPrompt
-  // 自动提交表单
-  handleCreateApp(createForm)
+  // // 自动提交表单
+  // handleCreateApp(createForm)
 }
 
 // 页面加载时请求数据
@@ -530,6 +530,11 @@ onMounted(() => {
 
 .app-list {
   min-height: 100px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  padding: 0 80px;
 }
 
 .app-cards {
