@@ -67,6 +67,7 @@ public class AppController {
      */
     @GetMapping(value = "/chat/gen/code", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     @RateLimit(limitType = RateLimitType.USER, rate = 5, rateInterval = 60, message = "AI 对话请求过于频繁，请稍后再试")
+    @AuthCheck(mustRole = UserConstant.USER_LOGIN_STATE)
     public Flux<ServerSentEvent<String>> chatToGenCode(@RequestParam Long appId,
                                                        @RequestParam String message,
                                                        HttpServletRequest request) {
@@ -104,6 +105,7 @@ public class AppController {
      * @return 部署 URL
      */
     @PostMapping("/deploy")
+    @AuthCheck(mustRole = UserConstant.USER_LOGIN_STATE)
     public BaseResponse<String> deployApp(@RequestBody AppDeployDto appDeployDto, HttpServletRequest request) {
         ThrowUtils.throwIf(appDeployDto == null, ErrorCode.PARAMS_ERROR);
         Long appId = appDeployDto.getAppId();
@@ -123,6 +125,7 @@ public class AppController {
      * @param response 响应
      */
     @GetMapping("/download/{appId}")
+    @AuthCheck(mustRole = UserConstant.USER_LOGIN_STATE)
     public void downloadAppCode(@PathVariable Long appId,
                                 HttpServletRequest request,
                                 HttpServletResponse response) {
@@ -160,6 +163,7 @@ public class AppController {
      * @return 应用 id
      */
     @PostMapping("/add")
+    @AuthCheck(mustRole = UserConstant.USER_LOGIN_STATE)
     public BaseResponse<Long> addApp(@RequestBody AppAddDto appAddDto, HttpServletRequest request) {
         ThrowUtils.throwIf(appAddDto == null, ErrorCode.PARAMS_ERROR);
         // 获取当前登录用户
@@ -177,6 +181,7 @@ public class AppController {
      * @return 更新结果
      */
     @PostMapping("/update")
+    @AuthCheck(mustRole = UserConstant.USER_LOGIN_STATE)
     public BaseResponse<Boolean> updateApp(@RequestBody AppUpdateDto appUpdateDto, HttpServletRequest request) {
         if (appUpdateDto == null || appUpdateDto.getId() == null) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
@@ -208,6 +213,7 @@ public class AppController {
      * @return 删除结果
      */
     @PostMapping("/delete")
+    @AuthCheck(mustRole = UserConstant.USER_LOGIN_STATE)
     public BaseResponse<Boolean> deleteApp(@RequestBody DeleteRequest deleteRequest, HttpServletRequest request) {
         if (deleteRequest == null || deleteRequest.getId() <= 0) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
