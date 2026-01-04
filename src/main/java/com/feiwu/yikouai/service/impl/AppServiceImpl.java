@@ -5,6 +5,8 @@ import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.io.FileUtil;
 import cn.hutool.core.util.RandomUtil;
 import cn.hutool.core.util.StrUtil;
+import com.feiwu.yikouai.ai.AiAppTitleGeneratorService;
+import com.feiwu.yikouai.ai.AiAppTitleGeneratorServiceFactory;
 import com.feiwu.yikouai.ai.AiCodeGenTypeRoutingService;
 import com.feiwu.yikouai.ai.AiCodeGenTypeRoutingServiceFactory;
 import com.feiwu.yikouai.constant.AppConstant;
@@ -75,6 +77,9 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
     @Resource
     private AiCodeGenTypeRoutingServiceFactory aiCodeGenTypeRoutingServiceFactory;
 
+    @Resource
+    private AiAppTitleGeneratorServiceFactory aiAppTitleGeneratorServiceFactory;
+
     @Override
     public Flux<String> chatToGenCode(Long appId, String message, User loginUser) {
         // 1. 参数校验
@@ -121,8 +126,10 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         App app = new App();
         BeanUtil.copyProperties(appAddDto, app);
         app.setUserId(loginUser.getId());
-        // 应用名称暂时为 initPrompt 前 12 位
-        app.setAppName(initPrompt.substring(0, Math.min(initPrompt.length(), 12)));
+        // 使用基本对话ai模型生成应用名称
+        AiAppTitleGeneratorService aiAppTitleGeneratorService = aiAppTitleGeneratorServiceFactory.createAiAppTitleGeneratorService();
+        String appTitle = aiAppTitleGeneratorService.generateAppTitle(initPrompt);
+        app.setAppName(appTitle);
         // 使用 AI 智能选择代码生成类型(多例模式)
         AiCodeGenTypeRoutingService aiCodeGenTypeRoutingService = aiCodeGenTypeRoutingServiceFactory.createAiCodeGenTypeRoutingService();
         CodeGenTypeEnum selectedCodeGenType = aiCodeGenTypeRoutingService.routeCodeGenType(initPrompt);
