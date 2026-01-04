@@ -4,7 +4,7 @@ import request from '@/request'
 
 /** 此处后端没有提供注释 POST /app/add */
 export async function addApp(body: API.AppAddDto, options?: { [key: string]: any }) {
-  return request<API.BaseResponseString>('/app/add', {
+  return request<API.BaseResponseLong>('/app/add', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -78,6 +78,21 @@ export async function chatToGenCode(
   options?: { [key: string]: any }
 ) {
   return request<API.ServerSentEventString[]>('/app/chat/gen/code', {
+    method: 'GET',
+    params: {
+      ...params,
+    },
+    ...(options || {}),
+  })
+}
+
+/** 此处后端没有提供注释 GET /app/chat/gen/stop */
+export async function stopToGenCode(
+  // 叠加生成的Param类型 (非body参数swagger默认没有生成对象)
+  params: API.stopToGenCodeParams,
+  options?: { [key: string]: any }
+) {
+  return request<API.BaseResponseBoolean>('/app/chat/gen/stop', {
     method: 'GET',
     params: {
       ...params,

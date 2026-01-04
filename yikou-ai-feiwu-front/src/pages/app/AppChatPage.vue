@@ -134,12 +134,18 @@
             />
           </a-tooltip>
           <a-button
+            v-if="!sending"
             type="primary"
             @click="sendMessage"
             :loading="sending"
             :disabled="!inputMessage.trim() || isInputDisabled"
           >
             发送
+          </a-button>
+          <a-button v-else type="primary" @click="handleStop" danger>
+            <template #icon>
+              <PauseOutlined />
+            </template>
           </a-button>
         </div>
       </a-layout-content>
@@ -181,14 +187,24 @@
 import { onMounted, ref, nextTick, computed } from 'vue'
 import { message } from 'ant-design-vue'
 import { useRoute, useRouter } from 'vue-router'
-import { getAppVoById, deployApp, deleteApp as deleteAppApi } from '@/api/appController.ts'
+import {
+  getAppVoById,
+  deployApp,
+  deleteApp as deleteAppApi,
+  stopToGenCode,
+} from '@/api/appController.ts'
 import { listAppChatHistory } from '@/api/chatHistoryController.ts'
 import { EventSourcePolyfill } from 'event-source-polyfill'
 import 'highlight.js/styles/github.css'
 import { useLoginUserStore } from '@/stores/loginUser.ts'
 import MarkdownRenderer from '@/components/MarkdownRenderer.vue'
 import DeploySuccessModal from '@/components/DeploySuccessModal.vue'
-import { InfoCircleOutlined, DownloadOutlined, EditOutlined } from '@ant-design/icons-vue'
+import {
+  InfoCircleOutlined,
+  DownloadOutlined,
+  EditOutlined,
+  PauseOutlined,
+} from '@ant-design/icons-vue'
 import AppDetailModal from '@/components/AppDetailModal.vue'
 import { getStaticPreviewUrl } from '@/config/env.ts'
 import request from '@/request.ts'
@@ -209,7 +225,8 @@ const inputMessage = ref('')
 const sending = ref(false)
 const messagesContainerRef = ref<HTMLDivElement | null>(null)
 
-// 消息容器高度相关
+// SSE流相关
+let eventSource: EventSourcePolyfill | null = null
 const messagesContainerHeight = ref(500)
 
 // 部署相关
@@ -456,7 +473,7 @@ const sendSSEMessage = async (content: string, aiMsgIndex: number) => {
 
   try {
     // 使用EventSource接收流式响应
-    const eventSource = new EventSourcePolyfill(
+    eventSource = new EventSourcePolyfill(
       `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8123/api'}/app/chat/gen/code?appId=${appId.value}&message=${encodeURIComponent(content)}`,
       {
         withCredentials: true,
@@ -502,6 +519,8 @@ const sendSSEMessage = async (content: string, aiMsgIndex: number) => {
         message.error(errorMessage)
 
         eventSource?.close()
+        sending.value = false
+        streamLoading.value = false
       } catch (parseError) {
         console.error('解析错误事件失败:', parseError, '原始数据:', event.data)
       }
@@ -572,6 +591,34 @@ const doDeploy = async () => {
 const openDeployedSite = () => {
   if (deployUrl.value) {
     window.open(deployUrl.value, '_blank')
+  }
+}
+
+// 停止生成
+const handleStop = async () => {
+  if (!appId.value) {
+    message.error('应用ID不存在')
+    return
+  }
+
+  try {
+    // 发送停止请求
+    const res = await stopToGenCode({ appId: appId.value })
+    if (res.data.code === 0 && res.data.data) {
+      // 关闭SSE流
+      if (eventSource) {
+        eventSource.close()
+        eventSource = null
+      }
+      // 更新状态
+      sending.value = false
+      streamLoading.value = false
+      message.success('已停止生成')
+    } else {
+      message.error('停止生成失败：' + res.data.message)
+    }
+  } catch (error) {
+    message.error('停止生成失败，请重试')
   }
 }
 
@@ -816,7 +863,7 @@ onMounted(async () => {
   color: #007bff;
 }
 
-.element-id{
+.element-id {
   color: #28a745;
   margin-left: 4px;
 }
