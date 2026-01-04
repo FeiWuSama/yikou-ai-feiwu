@@ -16,7 +16,6 @@ import com.feiwu.yikouai.exception.ThrowUtils;
 import com.feiwu.yikouai.langgraph4j.model.enums.RateLimitType;
 import com.feiwu.yikouai.model.dto.app.*;
 import com.feiwu.yikouai.model.entity.User;
-import com.feiwu.yikouai.model.enums.CodeGenTypeEnum;
 import com.feiwu.yikouai.model.vo.app.AppVO;
 import com.feiwu.yikouai.service.ProjectDownloadService;
 import com.feiwu.yikouai.service.UserService;
@@ -31,6 +30,7 @@ import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.web.bind.annotation.*;
 import com.feiwu.yikouai.model.entity.App;
 import com.feiwu.yikouai.service.AppService;
+import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -38,6 +38,7 @@ import java.io.File;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * 应用 控制层。
@@ -56,6 +57,9 @@ public class AppController {
 
     @Resource
     private ProjectDownloadService projectDownloadService;
+
+    // 使用 ConcurrentHashMap 类型能避免明显的并发问题
+    private final Map<Long, Disposable> disposableMap = new ConcurrentHashMap<>();
 
     /**
      * 应用聊天生成代码（流式 SSE）
@@ -78,23 +82,87 @@ public class AppController {
         User loginUser = userService.getLoginUser(request);
         // 调用服务生成代码（流式）
         Flux<String> contentFlux = appService.chatToGenCode(appId, message, loginUser);
-        // 转换为 ServerSentEvent 格式
-        return contentFlux
-                .map(chunk -> {
-                    // 将内容包装成JSON对象
-                    Map<String, String> wrapper = Map.of("d", chunk);
-                    String jsonData = JSONUtil.toJsonStr(wrapper);
-                    return ServerSentEvent.<String>builder()
-                            .data(jsonData)
-                            .build();
-                })
-                .concatWith(Mono.just(
-                        // 发送结束事件
-                        ServerSentEvent.<String>builder()
-                                .event("done")
-                                .data("")
-                                .build()
-                ));
+        
+        // 使用Flux.create创建可控流(Spring WebFlux 会自动订阅流，所以避免直接调用subscribe())
+        return Flux.create(sink -> {
+            // 转换为 ServerSentEvent 格式并订阅
+            Disposable disposable = contentFlux
+                    .map(chunk -> {
+                        // 将内容包装成JSON对象
+                        Map<String, String> wrapper = Map.of("d", chunk);
+                        String jsonData = JSONUtil.toJsonStr(wrapper);
+                        return ServerSentEvent.<String>builder()
+                                .data(jsonData)
+                                .build();
+                    })
+                    .concatWith(Mono.just(
+                            // 发送结束事件
+                            ServerSentEvent.<String>builder()
+                                    .event("done")
+                                    .data("")
+                                    .build()
+                    ))
+                    .subscribe(
+                            // 正常处理
+                            sink::next,
+                            // 错误处理
+                            sink::error,
+                            // 完成处理
+                            sink::complete
+                    );
+            
+            // 保存disposable，用于后续中断
+            disposableMap.put(appId, disposable);
+
+            // 当流取消或结束时从map中移除
+            sink.onCancel(() -> {
+                disposable.dispose();
+                disposableMap.remove(appId);
+            });
+
+            sink.onDispose(() -> {
+                disposableMap.remove(appId);
+            });
+        });
+    }
+
+    /**
+     * 中断应用聊天生成代码（流式 SSE）
+     *
+     * @param appId   应用 ID
+     * @param request 请求对象
+     * @return 生成结果流
+     */
+    @GetMapping("/chat/gen/stop")
+    @AuthCheck(mustRole = UserConstant.USER_LOGIN_STATE)
+    public BaseResponse<Boolean> stopToGenCode(@RequestParam Long appId, HttpServletRequest request) {
+        // 参数校验
+        ThrowUtils.throwIf(appId == null || appId <= 0, ErrorCode.PARAMS_ERROR, "应用ID无效");
+        // 获取当前登录用户
+        User loginUser = userService.getLoginUser(request);
+        
+        // 验证应用权限
+        AppQueryDto appQueryDto = new AppQueryDto();
+        appQueryDto.setId(appId);
+        appQueryDto.setUserId(loginUser.getId());
+        QueryWrapper queryWrapper = appService.getQueryWrapper(appQueryDto);
+        long count = appService.count(queryWrapper);
+        if (count == 0) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "应用id错误或无权限操作");
+        }
+        
+        // 一次性获取并移除disposable，保证该操作的原子性，避免并发问题
+        Disposable disposable = disposableMap.remove(appId);
+        if (disposable == null) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "没有正在进行的代码生成任务");
+        }
+
+        // 中断流（检查是否已经被中断，避免重复中断）
+        if (!disposable.isDisposed()) {
+            disposable.dispose();
+        }
+        
+        return ResultUtils.success(true);
     }
 
     /**
@@ -152,7 +220,6 @@ public class AppController {
         // 7. 调用通用下载服务
         projectDownloadService.downloadProjectAsZip(sourceDirPath, downloadFileName, response);
     }
-
 
 
     /**
