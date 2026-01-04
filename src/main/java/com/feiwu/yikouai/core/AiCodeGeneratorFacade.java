@@ -129,7 +129,7 @@ public class AiCodeGeneratorFacade {
                         sink.complete();
                     })
                     .onError((Throwable error) -> {
-                        error.printStackTrace();
+                        log.error("转换失败: {}", error.getMessage());
                         sink.error(error);
                     })
                     .start();
@@ -147,10 +147,8 @@ public class AiCodeGeneratorFacade {
      */
     private Flux<String> processCodeStream(Flux<String> codeStream, CodeGenTypeEnum codeGenType, Long appId) {
         StringBuilder codeBuilder = new StringBuilder();
-        return codeStream.doOnNext(chunk -> {
-            // 实时收集代码片段
-            codeBuilder.append(chunk);
-        }).doOnComplete(() -> {
+        // 实时收集代码片段
+        return codeStream.doOnNext(codeBuilder::append).doOnComplete(() -> {
             // 流式返回完成后保存代码
             try {
                 String completeCode = codeBuilder.toString();
@@ -158,7 +156,7 @@ public class AiCodeGeneratorFacade {
                 Object parsedResult = CodeParserExecutor.executeParser(completeCode, codeGenType);
                 // 使用执行器保存代码
                 File savedDir = CodeFileSaverExecutor.executeSaver(parsedResult, codeGenType, appId);
-                log.info("保存成功，路径为：" + savedDir.getAbsolutePath());
+                log.info("保存成功，路径为：{}", savedDir.getAbsolutePath());
             } catch (Exception e) {
                 log.error("保存失败: {}", e.getMessage());
             }
