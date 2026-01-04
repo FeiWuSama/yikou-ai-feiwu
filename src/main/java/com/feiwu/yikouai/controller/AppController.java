@@ -1,6 +1,7 @@
 package com.feiwu.yikouai.controller;
 
 import cn.hutool.core.bean.BeanUtil;
+import cn.hutool.core.io.FileUtil;
 import cn.hutool.core.util.StrUtil;
 import cn.hutool.json.JSONUtil;
 import com.feiwu.yikouai.annotation.AuthCheck;
@@ -16,6 +17,7 @@ import com.feiwu.yikouai.exception.ThrowUtils;
 import com.feiwu.yikouai.langgraph4j.model.enums.RateLimitType;
 import com.feiwu.yikouai.model.dto.app.*;
 import com.feiwu.yikouai.model.entity.User;
+import com.feiwu.yikouai.model.enums.CodeGenTypeEnum;
 import com.feiwu.yikouai.model.vo.app.AppVO;
 import com.feiwu.yikouai.service.ProjectDownloadService;
 import com.feiwu.yikouai.service.UserService;
@@ -82,7 +84,7 @@ public class AppController {
         User loginUser = userService.getLoginUser(request);
         // 调用服务生成代码（流式）
         Flux<String> contentFlux = appService.chatToGenCode(appId, message, loginUser);
-        
+
         // 使用Flux.create创建可控流(Spring WebFlux 会自动订阅流，所以避免直接调用subscribe())
         return Flux.create(sink -> {
             // 转换为 ServerSentEvent 格式并订阅
@@ -110,7 +112,7 @@ public class AppController {
                             // 完成处理
                             sink::complete
                     );
-            
+
             // 保存disposable，用于后续中断
             disposableMap.put(appId, disposable);
 
@@ -140,7 +142,7 @@ public class AppController {
         ThrowUtils.throwIf(appId == null || appId <= 0, ErrorCode.PARAMS_ERROR, "应用ID无效");
         // 获取当前登录用户
         User loginUser = userService.getLoginUser(request);
-        
+
         // 验证应用权限
         AppQueryDto appQueryDto = new AppQueryDto();
         appQueryDto.setId(appId);
@@ -150,7 +152,7 @@ public class AppController {
         if (count == 0) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "应用id错误或无权限操作");
         }
-        
+
         // 一次性获取并移除disposable，保证该操作的原子性，避免并发问题
         Disposable disposable = disposableMap.remove(appId);
         if (disposable == null) {
@@ -161,7 +163,7 @@ public class AppController {
         if (!disposable.isDisposed()) {
             disposable.dispose();
         }
-        
+
         return ResultUtils.success(true);
     }
 
@@ -387,6 +389,11 @@ public class AppController {
         App oldApp = appService.getById(id);
         ThrowUtils.throwIf(oldApp == null, ErrorCode.NOT_FOUND_ERROR);
         boolean result = appService.removeById(id);
+        CodeGenTypeEnum codeGenTypeEnum = CodeGenTypeEnum.getEnumByValue(oldApp.getCodeGenType());
+        // 删除相关的源码资源和部署资源
+        FileUtil.del(AppConstant.CODE_OUTPUT_ROOT_DIR + File.separator +
+                codeGenTypeEnum.getValue() + "_" + oldApp.getId());
+        FileUtil.del(AppConstant.CODE_DEPLOY_ROOT_DIR + File.separator + oldApp.getDeployKey());
         return ResultUtils.success(result);
     }
 
