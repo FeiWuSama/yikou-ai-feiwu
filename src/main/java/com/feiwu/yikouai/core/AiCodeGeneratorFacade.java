@@ -23,6 +23,11 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicBoolean;
+
 import java.io.File;
 
 /**
@@ -37,6 +42,14 @@ public class AiCodeGeneratorFacade {
 
     @Resource
     private VueProjectBuilder vueProjectBuilder;
+    
+    // 用于跟踪所有正在执行的流和它们的执行线程
+    private final Map<String, Thread> activeStreams = new ConcurrentHashMap<>();
+    
+    // 生成唯一的流ID
+    private String generateStreamId() {
+        return UUID.randomUUID().toString();
+    }
 
     /**
      * 统一入口：根据类型生成并保存代码
@@ -74,6 +87,7 @@ public class AiCodeGeneratorFacade {
      * @param userMessage     用户提示词
      * @param codeGenTypeEnum 生成类型
      * @param appId           应用id
+     * @return Flux<String> 流式响应
      */
     public Flux<String> generateAndSaveCodeStream(String userMessage, CodeGenTypeEnum codeGenTypeEnum, Long appId) {
         if (codeGenTypeEnum == null) {
@@ -110,29 +124,82 @@ public class AiCodeGeneratorFacade {
      */
     private Flux<String> processTokenStream(TokenStream tokenStream,Long appId) {
         return Flux.create(sink -> {
+            // 创建一个原子布尔值来跟踪是否已取消
+            AtomicBoolean isCancelled = new AtomicBoolean(false);
+            
+            // 创建一个线程引用，用于存储实际执行AiService方法的线程
+            Thread[] aiServiceThread = new Thread[1];
+            
+            // 生成唯一的流ID
+            String streamId = generateStreamId();
+            
             tokenStream.onPartialResponse((String partialResponse) -> {
+                        if(sink.isCancelled() || isCancelled.get()){
+                            sink.complete();
+                            return;
+                        }
                         AiResponseMessage aiResponseMessage = new AiResponseMessage(partialResponse);
                         sink.next(JSONUtil.toJsonStr(aiResponseMessage));
                     })
                     .onPartialToolExecutionRequest((index, toolExecutionRequest) -> {
+                        if(sink.isCancelled() || isCancelled.get()){
+                            sink.complete();
+                            return;
+                        }
                         ToolRequestMessage toolRequestMessage = new ToolRequestMessage(toolExecutionRequest);
                         sink.next(JSONUtil.toJsonStr(toolRequestMessage));
                     })
                     .onToolExecuted((ToolExecution toolExecution) -> {
+                        if(sink.isCancelled() || isCancelled.get()){
+                            sink.complete();
+                            return;
+                        }
                         ToolExecutedMessage toolExecutedMessage = new ToolExecutedMessage(toolExecution);
                         sink.next(JSONUtil.toJsonStr(toolExecutedMessage));
                     })
                     .onCompleteResponse((ChatResponse response) -> {
+                        if(sink.isCancelled() || isCancelled.get()){
+                            sink.complete();
+                            return;
+                        }
                         // 执行 Vue 项目构建（同步执行，确保预览时项目已就绪）
                         String projectPath = AppConstant.CODE_OUTPUT_ROOT_DIR + File.separator + "vue_project_" + appId;
                         vueProjectBuilder.buildProject(projectPath);
-                        sink.complete();
                     })
                     .onError((Throwable error) -> {
+                        if(sink.isCancelled() || isCancelled.get()){
+                            sink.complete();
+                            return;
+                        }
                         log.error("转换失败: {}", error.getMessage());
                         sink.error(error);
                     })
                     .start();
+            
+            // 保存实际执行AiService方法的线程
+            aiServiceThread[0] = Thread.currentThread();
+            
+            // 将流ID和线程关联起来，以便在取消时中断
+            activeStreams.put(streamId, aiServiceThread[0]);
+            
+            sink.onCancel(() -> {
+                isCancelled.set(true);
+                log.info("中断流: {}", streamId);
+                
+                // 获取并中断执行AiService方法的线程
+                Thread thread = activeStreams.remove(streamId);
+                if (thread != null && thread.isAlive()) {
+                    thread.interrupt();
+                }
+                
+                // 完成 Flux
+                sink.complete();
+            });
+            
+            // 当Flux完成或错误时，清理资源
+            sink.onDispose(() -> {
+                activeStreams.remove(streamId);
+            });
         });
     }
 
