@@ -16,7 +16,15 @@
             </template>
             应用详情
           </a-button>
-          <a-button type="primary" @click="doDeploy" :loading="deployLoading">部署</a-button>
+          <a-button type="primary" @click="doDeploy" :loading="deployLoading">
+            {{
+              deployLoading
+                ? '部署中...'
+                : appInfo.deployKey !== null && appInfo.deployKey != ''
+                  ? '取消部署'
+                  : '部署'
+            }}
+          </a-button>
           <a-button
             type="primary"
             ghost
@@ -190,6 +198,7 @@ import { useRoute, useRouter } from 'vue-router'
 import {
   getAppVoById,
   deployApp,
+  deployAppCancel,
   deleteApp as deleteAppApi,
   stopToGenCode,
 } from '@/api/appController.ts'
@@ -570,6 +579,24 @@ const doDeploy = async () => {
     message.error('应用ID不存在')
     return
   }
+
+  // 如果当前正在部署中，则取消部署
+  if (appInfo.value.deployKey !== null && appInfo.value.deployKey !== '') {
+    try {
+      const res = await deployAppCancel({ appId: appId.value })
+      if (res.data.code === 0 && res.data.data) {
+        message.success('已取消部署')
+        // 刷新应用信息
+        await fetchAppInfo()
+      } else {
+        message.error('取消部署失败，' + res.data.message)
+      }
+    } catch (error) {
+      message.error('取消部署失败，请重试')
+    }
+    return
+  }
+
   deployLoading.value = true
   try {
     const res = await deployApp({ appId: appId.value })
@@ -577,6 +604,8 @@ const doDeploy = async () => {
       // 显示部署成功弹窗
       deployUrl.value = res.data.data
       deployModalVisible.value = true
+      // 刷新应用信息
+      await fetchAppInfo()
     } else {
       message.error('部署失败，' + res.data.message)
     }

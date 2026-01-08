@@ -10,6 +10,10 @@ declare namespace API {
     priority?: number
   }
 
+  type AppDeployCancelDto = {
+    appId?: number
+  }
+
   type AppDeployDto = {
     appId?: number
   }
