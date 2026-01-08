@@ -203,6 +203,41 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         return appDeployUrl;
     }
 
+    @Override
+    public Boolean deployAppCancel(Long appId, User loginUser) {
+        // 1. 查询应用信息
+        App app = this.getById(appId);
+        ThrowUtils.throwIf(app == null, ErrorCode.NOT_FOUND_ERROR, "应用不存在");
+        // 2. 验证用户是否有权限取消部署该应用，仅本人可以操作
+        if (!app.getUserId().equals(loginUser.getId())) {
+            throw new BusinessException(ErrorCode.NO_AUTH_ERROR, "无权限取消部署该应用");
+        }
+        // 3. 检查应用是否已部署
+        String deployKey = app.getDeployKey();
+        if (StrUtil.isBlank(deployKey)) {
+            return true; // 未部署，直接返回成功
+        }
+        // 4. 删除部署目录下的应用文件夹
+        String deployDirPath = AppConstant.CODE_DEPLOY_ROOT_DIR + File.separator + deployKey;
+        File deployDir = new File(deployDirPath);
+        if (deployDir.exists()) {
+            try {
+                FileUtil.del(deployDir);
+                log.info("成功删除应用部署目录: {}", deployDirPath);
+            } catch (Exception e) {
+                log.error("删除应用部署目录失败: {}", e.getMessage());
+                throw new BusinessException(ErrorCode.SYSTEM_ERROR, "取消部署失败: " + e.getMessage());
+            }
+        }
+        // 5. 更新数据库中的应用信息，清空deployKey和deployedTime
+        App updateApp = new App();
+        updateApp.setId(appId);
+        updateApp.setDeployKey("");
+        boolean updateResult = this.updateById(updateApp);
+        ThrowUtils.throwIf(!updateResult, ErrorCode.OPERATION_ERROR, "更新应用部署信息失败");
+        return true;
+    }
+
     /**
      * 异步生成应用截图并更新封面
      *

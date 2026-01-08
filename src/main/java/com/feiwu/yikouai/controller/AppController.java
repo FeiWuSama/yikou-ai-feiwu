@@ -188,6 +188,27 @@ public class AppController {
     }
 
     /**
+     * 取消应用部署
+     *
+     * @param appDeployCancelDto 部署取消请求
+     * @param request            请求
+     * @return 部署 URL
+     */
+    @PostMapping("/deploy/cancel")
+    @AuthCheck(mustRole = UserConstant.USER_LOGIN_STATE)
+    public BaseResponse<Boolean> deployAppCancel(@RequestBody AppDeployCancelDto appDeployCancelDto, HttpServletRequest request) {
+        ThrowUtils.throwIf(appDeployCancelDto == null, ErrorCode.PARAMS_ERROR);
+        Long appId = appDeployCancelDto.getAppId();
+        ThrowUtils.throwIf(appId == null || appId <= 0, ErrorCode.PARAMS_ERROR, "应用 ID 不能为空");
+        // 获取当前登录用户
+        User loginUser = userService.getLoginUser(request);
+        // 调用服务部署应用
+        Boolean isSuccess = appService.deployAppCancel(appId, loginUser);
+        ThrowUtils.throwIf(!isSuccess, ErrorCode.OPERATION_ERROR);
+        return ResultUtils.success(true);
+    }
+
+    /**
      * 下载应用代码
      *
      * @param appId    应用ID

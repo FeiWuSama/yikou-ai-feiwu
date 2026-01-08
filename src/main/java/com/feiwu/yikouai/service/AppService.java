@@ -31,4 +31,6 @@ public interface AppService extends IService<App> {
     QueryWrapper getQueryWrapper(AppQueryDto appQueryRequest);
 
     List<AppVO> getAppVOList(List<App> appList);
+
+    Boolean deployAppCancel(Long appId, User loginUser);
 }
