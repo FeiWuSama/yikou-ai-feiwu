@@ -34,7 +34,7 @@ import java.util.List;
  */
 @Service
 @Slf4j
-public class ChatHistoryServiceImpl extends ServiceImpl<ChatHistoryMapper, ChatHistory>  implements ChatHistoryService {
+public class ChatHistoryServiceImpl extends ServiceImpl<ChatHistoryMapper, ChatHistory> implements ChatHistoryService {
 
     @Resource
     @Lazy
@@ -46,15 +46,35 @@ public class ChatHistoryServiceImpl extends ServiceImpl<ChatHistoryMapper, ChatH
         ThrowUtils.throwIf(StrUtil.isBlank(message), ErrorCode.PARAMS_ERROR, "消息内容不能为空");
         ThrowUtils.throwIf(StrUtil.isBlank(messageType), ErrorCode.PARAMS_ERROR, "消息类型不能为空");
         ThrowUtils.throwIf(userId == null || userId <= 0, ErrorCode.PARAMS_ERROR, "用户ID不能为空");
+        QueryWrapper queryWrapper = new QueryWrapper();
+        queryWrapper.eq("appId", appId);
+        queryWrapper.eq("messageType", ChatHistoryMessageTypeEnum.USER.getValue());
+        queryWrapper.orderBy("turnNumber", false);
+        ChatHistory dbChatHistory = this.getOne(queryWrapper);
+        if (dbChatHistory == null) {
+            dbChatHistory = ChatHistory.builder().turnNumber(0L).build();
+        }
         // 验证消息类型是否有效
+        ChatHistory chatHistory = null;
         ChatHistoryMessageTypeEnum messageTypeEnum = ChatHistoryMessageTypeEnum.getEnumByValue(messageType);
         ThrowUtils.throwIf(messageTypeEnum == null, ErrorCode.PARAMS_ERROR, "不支持的消息类型: " + messageType);
-        ChatHistory chatHistory = ChatHistory.builder()
-                .appId(appId)
-                .message(message)
-                .messageType(messageType)
-                .userId(userId)
-                .build();
+        if (messageType.equals(ChatHistoryMessageTypeEnum.AI.getValue())) {
+            chatHistory = ChatHistory.builder()
+                    .appId(appId)
+                    .message(message)
+                    .messageType(messageType)
+                    .userId(userId)
+                    .turnNumber(dbChatHistory.getTurnNumber())
+                    .build();
+        } else {
+            chatHistory = ChatHistory.builder()
+                    .appId(appId)
+                    .message(message)
+                    .messageType(messageType)
+                    .userId(userId)
+                    .turnNumber(dbChatHistory.getTurnNumber() + 1)
+                    .build();
+        }
         return this.save(chatHistory);
     }
 

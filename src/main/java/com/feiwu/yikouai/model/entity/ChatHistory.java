@@ -4,13 +4,11 @@ import com.mybatisflex.annotation.Column;
 import com.mybatisflex.annotation.Id;
 import com.mybatisflex.annotation.KeyType;
 import com.mybatisflex.annotation.Table;
-
 import java.io.Serializable;
 import java.time.LocalDateTime;
 
 import java.io.Serial;
 
-import com.mybatisflex.core.keygen.KeyGenerators;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -34,7 +32,7 @@ public class ChatHistory implements Serializable {
     /**
      * id
      */
-    @Id(keyType = KeyType.Generator, value = KeyGenerators.snowFlakeId)
+    @Id(keyType = KeyType.Auto)
     private Long id;
 
     /**
@@ -59,6 +57,12 @@ public class ChatHistory implements Serializable {
      */
     @Column("userId")
     private Long userId;
+
+    /**
+     * 对话轮数
+     */
+    @Column("turnNumber")
+    private Long turnNumber;
 
     /**
      * 创建时间

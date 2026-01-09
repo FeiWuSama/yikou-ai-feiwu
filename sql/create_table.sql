@@ -9,7 +9,7 @@ use yikou_ai;
 -- 用户表
 create table if not exists user
 (
-    id           bigint auto_increment comment 'id' primary key,
+    id            bigint auto_increment comment 'id' primary key,
     user_account  varchar(256)                           not null comment '账号',
     user_password varchar(512)                           not null comment '密码',
     user_name     varchar(256)                           null comment '用户昵称',
@@ -53,6 +53,7 @@ create table chat_history
     messageType varchar(32)                        not null comment 'user/ai',
     appId       bigint                             not null comment '应用id',
     userId      bigint                             not null comment '创建用户id',
+    turnNumber  int                                not null default 1 comment '对话轮数',
     createTime  datetime default CURRENT_TIMESTAMP not null comment '创建时间',
     updateTime  datetime default CURRENT_TIMESTAMP not null on update CURRENT_TIMESTAMP comment '更新时间',
     isDelete    tinyint  default 0                 not null comment '是否删除',
