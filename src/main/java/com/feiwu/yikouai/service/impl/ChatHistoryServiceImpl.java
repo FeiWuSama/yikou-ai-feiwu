@@ -2,6 +2,8 @@ package com.feiwu.yikouai.service.impl;
 
 import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.util.StrUtil;
+import com.feiwu.yikouai.ai.AiBaseGeneratorService;
+import com.feiwu.yikouai.ai.AiBaseGeneratorServiceFactory;
 import com.feiwu.yikouai.constant.UserConstant;
 import com.feiwu.yikouai.exception.ErrorCode;
 import com.feiwu.yikouai.exception.ThrowUtils;
@@ -13,10 +15,12 @@ import com.feiwu.yikouai.service.AppService;
 import com.feiwu.yikouai.service.ChatHistoryService;
 import com.mybatisflex.core.paginate.Page;
 import com.mybatisflex.core.query.QueryWrapper;
+import com.mybatisflex.core.update.UpdateWrapper;
 import com.mybatisflex.spring.service.impl.ServiceImpl;
 import com.feiwu.yikouai.model.entity.ChatHistory;
 import com.feiwu.yikouai.mapper.ChatHistoryMapper;
 import dev.langchain4j.data.message.AiMessage;
+import dev.langchain4j.data.message.SystemMessage;
 import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.memory.chat.MessageWindowChatMemory;
 import jakarta.annotation.Resource;
@@ -40,12 +44,17 @@ public class ChatHistoryServiceImpl extends ServiceImpl<ChatHistoryMapper, ChatH
     @Lazy
     private AppService appService;
 
+    @Resource
+    private AiBaseGeneratorServiceFactory aiBaseGeneratorServiceFactory;
+
     @Override
     public boolean addChatMessage(Long appId, String message, String messageType, Long userId) {
         ThrowUtils.throwIf(appId == null || appId <= 0, ErrorCode.PARAMS_ERROR, "应用ID不能为空");
         ThrowUtils.throwIf(StrUtil.isBlank(message), ErrorCode.PARAMS_ERROR, "消息内容不能为空");
         ThrowUtils.throwIf(StrUtil.isBlank(messageType), ErrorCode.PARAMS_ERROR, "消息类型不能为空");
         ThrowUtils.throwIf(userId == null || userId <= 0, ErrorCode.PARAMS_ERROR, "用户ID不能为空");
+
+        // 获取当前最大的turnNumber
         QueryWrapper queryWrapper = new QueryWrapper();
         queryWrapper.eq("appId", appId);
         queryWrapper.eq("messageType", ChatHistoryMessageTypeEnum.USER.getValue());
@@ -53,6 +62,29 @@ public class ChatHistoryServiceImpl extends ServiceImpl<ChatHistoryMapper, ChatH
         ChatHistory dbChatHistory = this.getOne(queryWrapper);
         if (dbChatHistory == null) {
             dbChatHistory = ChatHistory.builder().turnNumber(0L).build();
+        }
+
+        // 检查对话历史轮数，如果超过 10 轮，生成总结
+        if (messageType.equals(ChatHistoryMessageTypeEnum.AI.getValue()) && dbChatHistory.getTurnNumber() == 1) {
+            // 获取所有对话历史，用于生成总结
+            QueryWrapper historyQueryWrapper = new QueryWrapper();
+            historyQueryWrapper.eq("appId", appId);
+            historyQueryWrapper.orderBy("createTime", true);
+            List<ChatHistory> chatHistoryList = this.list(historyQueryWrapper);
+
+            // 调用AI生成对话总结
+            AiBaseGeneratorService aiBaseGeneratorService = aiBaseGeneratorServiceFactory.createAiBaseGeneratorService();
+            String summary = aiBaseGeneratorService.generateChatHistorySummary(chatHistoryList);
+
+            // 保存总结作为新的对话历史
+            ChatHistory summaryHistory = ChatHistory.builder()
+                    .appId(appId)
+                    .message(summary)
+                    .messageType(ChatHistoryMessageTypeEnum.SUMMARY.getValue())
+                    .userId(userId)
+                    .turnNumber(dbChatHistory.getTurnNumber())
+                    .build();
+            this.save(summaryHistory);
         }
         // 验证消息类型是否有效
         ChatHistory chatHistory = null;
@@ -84,6 +116,19 @@ public class ChatHistoryServiceImpl extends ServiceImpl<ChatHistoryMapper, ChatH
         QueryWrapper queryWrapper = QueryWrapper.create()
                 .eq("appId", appId);
         return this.remove(queryWrapper);
+    }
+
+    /**
+     * 根据聊天历史查询数据传输对象获取 ai 和 user 消息类型的查询包装器
+     *
+     * @return 返回一个QueryWrapper对象，用于构建数据库 ai 和 user 消息类型的查询条件
+     */
+    public QueryWrapper getChatHistoryQueryWrapper(ChatHistoryQueryDto chatHistoryQueryDto){
+        QueryWrapper queryWrapper = this.getQueryWrapper(chatHistoryQueryDto);
+        queryWrapper.in(ChatHistory::getMessageType, 
+            ChatHistoryMessageTypeEnum.USER.getValue(), 
+            ChatHistoryMessageTypeEnum.AI.getValue());
+        return queryWrapper;
     }
 
     /**
@@ -143,7 +188,7 @@ public class ChatHistoryServiceImpl extends ServiceImpl<ChatHistoryMapper, ChatH
         ChatHistoryQueryDto chatHistoryQueryDto = new ChatHistoryQueryDto();
         chatHistoryQueryDto.setAppId(appId);
         chatHistoryQueryDto.setLastCreateTime(lastCreateTime);
-        QueryWrapper queryWrapper = this.getQueryWrapper(chatHistoryQueryDto);
+        QueryWrapper queryWrapper = this.getChatHistoryQueryWrapper(chatHistoryQueryDto);
         // 查询数据
         return this.page(Page.of(1, pageSize), queryWrapper);
     }
@@ -151,9 +196,11 @@ public class ChatHistoryServiceImpl extends ServiceImpl<ChatHistoryMapper, ChatH
     @Override
     public int loadChatHistoryToMemory(Long appId, MessageWindowChatMemory chatMemory, int maxCount) {
         try {
-            // 直接构造查询条件，起始点为 1 而不是 0，用于排除最新的用户消息
             QueryWrapper queryWrapper = QueryWrapper.create()
                     .eq(ChatHistory::getAppId, appId)
+                    .in(ChatHistory::getMessageType, 
+                        ChatHistoryMessageTypeEnum.USER.getValue(), 
+                        ChatHistoryMessageTypeEnum.AI.getValue())
                     .orderBy(ChatHistory::getCreateTime, false)
                     .limit(1, maxCount);
             List<ChatHistory> historyList = this.list(queryWrapper);

@@ -37,6 +37,14 @@ public interface ChatHistoryService extends IService<ChatHistory> {
     boolean deleteByAppId(Long appId);
 
     /**
+     * 根据聊天历史查询数据传输对象获取 ai 和 user 消息类型的查询包装器
+     *
+     * @param chatHistoryQueryDto 聊天历史查询数据传输对象，包含查询条件
+     * @return 返回一个QueryWrapper对象，用于构建数据库 ai 和 user 消息类型的查询条件
+     */
+    QueryWrapper getChatHistoryQueryWrapper(ChatHistoryQueryDto chatHistoryQueryDto);
+
+    /**
      * 根据聊天历史查询数据传输对象获取查询包装器
      *
      * @param chatHistoryQueryDto 聊天历史查询数据传输对象，包含查询条件

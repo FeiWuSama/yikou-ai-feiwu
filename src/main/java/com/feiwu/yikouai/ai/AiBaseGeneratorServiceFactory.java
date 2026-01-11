@@ -3,7 +3,6 @@ package com.feiwu.yikouai.ai;
 import com.feiwu.yikouai.utils.SpringContextUtil;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.service.AiServices;
-import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Configuration;
 
@@ -18,14 +17,14 @@ import org.springframework.context.annotation.Configuration;
  */
 @Configuration
 @Slf4j
-public class AiAppTitleGeneratorServiceFactory {
+public class AiBaseGeneratorServiceFactory {
 
-    public AiAppTitleGeneratorService createAiAppTitleGeneratorService() {
+    public AiBaseGeneratorService createAiBaseGeneratorService() {
         ChatModel chatModel = SpringContextUtil.getBean("baseChatModelPrototype", ChatModel.class);
-        return AiServices.builder(AiAppTitleGeneratorService.class).chatModel(chatModel).build();
+        return AiServices.builder(AiBaseGeneratorService.class).chatModel(chatModel).build();
     }
 
-    public AiAppTitleGeneratorService aiAppTitleGeneratorService() {
-        return createAiAppTitleGeneratorService();
+    public AiBaseGeneratorService AiBaseGeneratorService() {
+        return createAiBaseGeneratorService();
     }
 }
