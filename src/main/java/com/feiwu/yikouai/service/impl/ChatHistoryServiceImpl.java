@@ -65,7 +65,7 @@ public class ChatHistoryServiceImpl extends ServiceImpl<ChatHistoryMapper, ChatH
         }
 
         // 检查对话历史轮数，如果超过 10 轮，生成总结
-        if (messageType.equals(ChatHistoryMessageTypeEnum.AI.getValue()) && dbChatHistory.getTurnNumber() == 1) {
+        if (messageType.equals(ChatHistoryMessageTypeEnum.USER.getValue()) && dbChatHistory.getTurnNumber() > 10) {
             // 获取所有对话历史，用于生成总结
             QueryWrapper historyQueryWrapper = new QueryWrapper();
             historyQueryWrapper.eq("appId", appId);
@@ -123,11 +123,11 @@ public class ChatHistoryServiceImpl extends ServiceImpl<ChatHistoryMapper, ChatH
      *
      * @return 返回一个QueryWrapper对象，用于构建数据库 ai 和 user 消息类型的查询条件
      */
-    public QueryWrapper getChatHistoryQueryWrapper(ChatHistoryQueryDto chatHistoryQueryDto){
+    public QueryWrapper getChatHistoryQueryWrapper(ChatHistoryQueryDto chatHistoryQueryDto) {
         QueryWrapper queryWrapper = this.getQueryWrapper(chatHistoryQueryDto);
-        queryWrapper.in(ChatHistory::getMessageType, 
-            ChatHistoryMessageTypeEnum.USER.getValue(), 
-            ChatHistoryMessageTypeEnum.AI.getValue());
+        queryWrapper.in(ChatHistory::getMessageType,
+                ChatHistoryMessageTypeEnum.USER.getValue(),
+                ChatHistoryMessageTypeEnum.AI.getValue());
         return queryWrapper;
     }
 
@@ -196,30 +196,45 @@ public class ChatHistoryServiceImpl extends ServiceImpl<ChatHistoryMapper, ChatH
     @Override
     public int loadChatHistoryToMemory(Long appId, MessageWindowChatMemory chatMemory, int maxCount) {
         try {
-            QueryWrapper queryWrapper = QueryWrapper.create()
-                    .eq(ChatHistory::getAppId, appId)
-                    .in(ChatHistory::getMessageType, 
-                        ChatHistoryMessageTypeEnum.USER.getValue(), 
-                        ChatHistoryMessageTypeEnum.AI.getValue())
-                    .orderBy(ChatHistory::getCreateTime, false)
-                    .limit(1, maxCount);
-            List<ChatHistory> historyList = this.list(queryWrapper);
-            if (CollUtil.isEmpty(historyList)) {
-                return 0;
-            }
-            // 反转列表，确保按时间正序（老的在前，新的在后）
-            historyList = historyList.reversed();
-            // 按时间顺序添加到记忆中
-            int loadedCount = 0;
             // 先清理历史缓存，防止重复加载
             chatMemory.clear();
-            for (ChatHistory history : historyList) {
-                if (ChatHistoryMessageTypeEnum.USER.getValue().equals(history.getMessageType())) {
-                    chatMemory.add(UserMessage.from(history.getMessage()));
-                    loadedCount++;
-                } else if (ChatHistoryMessageTypeEnum.AI.getValue().equals(history.getMessageType())) {
-                    chatMemory.add(AiMessage.from(history.getMessage()));
-                    loadedCount++;
+            int loadedCount = 0;
+
+            // 查询最新的对话总结
+            QueryWrapper summaryQueryWrapper = QueryWrapper.create()
+                    .eq(ChatHistory::getAppId, appId)
+                    .eq(ChatHistory::getMessageType, ChatHistoryMessageTypeEnum.SUMMARY.getValue())
+                    .orderBy(ChatHistory::getCreateTime, false);
+            ChatHistory latestSummary = this.getOne(summaryQueryWrapper);
+
+            // 如果存在对话总结，将其作为系统消息添加到chatMemory中
+            if (latestSummary != null) {
+                chatMemory.add(SystemMessage.from("对话总结：" + latestSummary.getMessage()));
+                loadedCount++;
+            }else {
+                // 查询普通对话历史
+                QueryWrapper queryWrapper = QueryWrapper.create()
+                        .eq(ChatHistory::getAppId, appId)
+                        .in(ChatHistory::getMessageType,
+                                ChatHistoryMessageTypeEnum.USER.getValue(),
+                                ChatHistoryMessageTypeEnum.AI.getValue())
+                        .orderBy(ChatHistory::getCreateTime, false)
+                        .limit(1, maxCount);
+                List<ChatHistory> historyList = this.list(queryWrapper);
+                if (CollUtil.isEmpty(historyList)) {
+                    return loadedCount;
+                }
+                // 反转列表，确保按时间正序（老的在前，新的在后）
+                historyList = historyList.reversed();
+                // 按时间顺序添加到记忆中
+                for (ChatHistory history : historyList) {
+                    if (ChatHistoryMessageTypeEnum.USER.getValue().equals(history.getMessageType())) {
+                        chatMemory.add(UserMessage.from(history.getMessage()));
+                        loadedCount++;
+                    } else if (ChatHistoryMessageTypeEnum.AI.getValue().equals(history.getMessageType())) {
+                        chatMemory.add(AiMessage.from(history.getMessage()));
+                        loadedCount++;
+                    }
                 }
             }
             log.info("成功为 appId: {} 加载了 {} 条历史对话", appId, loadedCount);
