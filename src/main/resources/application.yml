@@ -66,6 +66,7 @@ management:
 #      api-key: <你的api-key>
 #      model-name: qwen3-coder-flash
 #      max-tokens: 8192
+#      time-out: 240s
 #      log-requests: true
 #      log-responses: true
 #    reasoning-streaming-chat-model:
@@ -74,6 +75,7 @@ management:
 #      model-name: qwen3-coder-flash
 #      log-requests: true
 #      log-responses: true
+#      time-out: 240s
 #      max-tokens: 3678
 #      temperature: 0.1
 #    routing-chat-model:
